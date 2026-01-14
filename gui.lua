@@ -1,147 +1,106 @@
--- Bee Swarm GUI - Простое меню
+-- Bee Swarm Simple GUI
 -- Автор: dachnic7384-bit
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+-- Загружаем main.lua сначала
+loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/main.lua"))()
+
 -- Загружаем Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Загружаем основной скрипт
-local AutoFarm = loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/main.lua"))()
-
 -- Создаем окно
 local Window = Rayfield:CreateWindow({
-    Name = "🐝 Bee Swarm Auto-Farm",
+    Name = "🐝 Bee Swarm",
     LoadingTitle = "Загрузка...",
-    LoadingSubtitle = "Макрос версия",
-    ConfigurationSaving = { Enabled = true, FolderName = "BeeSwarm" },
+    ConfigurationSaving = { Enabled = false },
     Discord = { Enabled = false },
     KeySystem = false,
 })
 
--- =========== ВКЛАДКА: АВТО-ФАРМ ===========
-local FarmTab = Window:CreateTab("🌻 Авто-Фарм", 4439880892)
+-- Вкладка авто-фарм
+local MainTab = Window:CreateTab("Главная", 4439880892)
 
--- Тумблер авто-фарма
-local farmToggle = FarmTab:CreateToggle({
-    Name = "▶️ Запустить авто-фарм",
+MainTab:CreateToggle({
+    Name = "🌻 Авто-фарм",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            AutoFarm:StartAutoFarm()
+            StartAutoFarm()
         else
-            AutoFarm:StopAutoFarm()
+            StopAutoFarm()
         end
     end
 })
 
--- Тумблер авто-конвертации
-FarmTab:CreateToggle({
-    Name = "🍯 Авто-конвертация",
-    CurrentValue = false,
-    Callback = function(Value)
-        AutoFarm.AutoConvert = Value
-    end
-})
-
--- Кнопка конвертации
-FarmTab:CreateButton({
-    Name = "🍯 Конвертировать сейчас",
+MainTab:CreateButton({
+    Name = "🍯 Конвертировать",
     Callback = function()
-        AutoFarm:ConvertToHoney()
+        ConvertToHoney()
     end
 })
 
--- Кнопка статуса
-FarmTab:CreateButton({
-    Name = "📊 Показать статус",
+-- Вкладка телепортов
+local TeleportTab = Window:CreateTab("Телепорты", 4439880892)
+
+TeleportTab:CreateButton({
+    Name = "🌻 Подсолнухи",
     Callback = function()
-        AutoFarm:GetStatus()
+        TeleportToField("Sunflower")
     end
 })
 
--- =========== ВКЛАДКА: ТЕЛЕПОРТЫ ===========
-local TeleportTab = Window:CreateTab("📍 Телепорты", 4439880892)
+TeleportTab:CreateButton({
+    Name = "🍄 Грибы",
+    Callback = function()
+        TeleportToField("Mushroom")
+    end
+})
 
--- Список полей
-local fields = {"Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider"}
+TeleportTab:CreateButton({
+    Name = "🔵 Синие цветы",
+    Callback = function()
+        TeleportToField("Blue Flower")
+    end
+})
 
-for _, field in pairs(fields) do
-    TeleportTab:CreateButton({
-        Name = "➡️ " .. field,
-        Callback = function()
-            AutoFarm:SetField(field)
-        end
-    })
-end
+TeleportTab:CreateButton({
+    Name = "🍀 Клевер",
+    Callback = function()
+        TeleportToField("Clover")
+    end
+})
 
--- =========== ВКЛАДКА: НАСТРОЙКИ ===========
-local SettingsTab = Window:CreateTab("⚙️ Настройки", 4439880892)
+TeleportTab:CreateButton({
+    Name = "🕷️ Пауки",
+    Callback = function()
+        TeleportToField("Spider")
+    end
+})
 
--- Скорость ходьбы
+-- Вкладка настроек
+local SettingsTab = Window:CreateTab("Настройки", 4439880892)
+
 SettingsTab:CreateSlider({
-    Name = "🚶 Скорость ходьбы",
+    Name = "🚶 Скорость",
     Range = {16, 50},
     Increment = 1,
     Suffix = "studs/s",
     CurrentValue = 16,
     Callback = function(Value)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if LocalPlayer.Character then
             LocalPlayer.Character.Humanoid.WalkSpeed = Value
         end
     end
 })
 
--- Сила прыжка
-SettingsTab:CreateSlider({
-    Name = "🏃‍♂️ Сила прыжка",
-    Range = {50, 150},
-    Increment = 10,
-    Suffix = "power",
-    CurrentValue = 50,
-    Callback = function(Value)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.JumpPower = Value
-        end
-    end
-})
-
--- =========== ВКЛАДКА: ИНФО ===========
-local InfoTab = Window:CreateTab("ℹ️ Информация", 4439880892)
-
-InfoTab:CreateLabel("🐝 Bee Swarm Auto-Farm v5.0")
-InfoTab:CreateLabel("Автор: dachnic7384-bit")
-InfoTab:CreateLabel("GitHub: github.com/dachnic7384-bit")
-InfoTab:CreateLabel("")
-InfoTab:CreateLabel("🎮 Управление:")
-InfoTab:CreateLabel("RightShift - меню")
-InfoTab:CreateLabel("F1 - вкл/выкл авто-фарм")
-InfoTab:CreateLabel("F2 - сменить поле")
-
--- =========== ГОРЯЧИЕ КЛАВИШИ ===========
-local UIS = game:GetService("UserInputService")
-local fieldIndex = 1
-
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F1 then
-        farmToggle:Set(not farmToggle.CurrentValue)
-    elseif input.KeyCode == Enum.KeyCode.F2 then
-        fieldIndex = fieldIndex + 1
-        if fieldIndex > #fields then fieldIndex = 1 end
-        AutoFarm:SetField(fields[fieldIndex])
-    end
-end)
-
--- =========== УВЕДОМЛЕНИЕ ===========
+-- Уведомление
 Rayfield:Notify({
-    Title = "🐝 Auto-Farm v5.0",
-    Content = "Загружен! F1 - вкл/выкл",
-    Duration = 5,
-    Image = 4439880892
+    Title = "🐝 Bee Swarm",
+    Content = "Меню загружено!",
+    Duration = 3,
 })
 
-print("✅ Auto-Farm готов! F1 - включить")
-
-return Window
+print("✅ Меню загружено! RightShift - открыть")
