@@ -1,87 +1,117 @@
 -- MyRobloxScripts v1.0
+-- Автор: dachnic7384-bit
 -- Репозиторий: https://github.com/dachnic7384-bit/MyRobloxScripts
 
+print("======================================")
 print("🎮 MyRobloxScripts загружен!")
-print("📁 Репозиторий: github.com/dachnic7384-bit/MyRobloxScripts")
+print("📁 GitHub: github.com/dachnic7384-bit/MyRobloxScripts")
+print("======================================")
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Безопасная проверка
+if not LocalPlayer then
+    warn("❌ Игрок не найден!")
+    return nil
+end
 
 -- Основные функции
 local MyScript = {}
 
--- Функция приветствия
+-- Приветствие
 function MyScript:Hello()
     game.StarterGui:SetCore("SendNotification", {
-        Title = "MyRobloxScripts",
+        Title = "MyRobloxScripts 🎮",
         Text = "Скрипт успешно загружен!",
-        Duration = 3,
+        Duration = 5,
         Icon = "rbxassetid://4483362458"
     })
-    return "✅ Скрипт активирован!"
+    return "✅ MyRobloxScripts активирован!"
 end
 
--- Функция информации об игроках
-function MyScript:PlayerList()
-    print("=== СПИСОК ИГРОКОВ ===")
+-- Информация об игроках
+function MyScript:GetPlayerInfo()
+    print("\n=== СПИСОК ИГРОКОВ (" .. #Players:GetPlayers() .. ") ===")
     for _, player in pairs(Players:GetPlayers()) do
-        print("👤 " .. player.Name .. 
+        local role = "👤"
+        if player == LocalPlayer then role = "🌟" end
+        
+        print(role .. " " .. player.Name .. 
               " | ID: " .. player.UserId ..
-              " | Аккаунт создан: " .. player.AccountAge .. " дней назад")
+              " | Возраст аккаунта: " .. player.AccountAge .. " дней")
     end
-    print("=====================")
+    print("================================\n")
+    return "✅ Список игроков показан в консоли"
 end
 
--- Простой ESP (подсветка игроков)
+-- ESP система
 function MyScript:SimpleESP()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local highlight = Instance.new("Highlight")
-            highlight.Name = "MyScript_Highlight"
+            highlight.Name = "MyScript_Highlight_" .. player.UserId
             highlight.Parent = player.Character
             highlight.FillColor = Color3.fromRGB(0, 255, 0)
             highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
-            highlight.FillTransparency = 0.5
+            highlight.FillTransparency = 0.6
+            highlight.OutlineTransparency = 0
         end
     end
-    return "✅ ESP включен!"
+    return "✅ ESP включен для всех игроков"
 end
 
--- Удаление ESP
 function MyScript:RemoveESP()
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character then
-            local highlight = player.Character:FindFirstChild("MyScript_Highlight")
-            if highlight then
-                highlight:Destroy()
+            for _, obj in pairs(player.Character:GetChildren()) do
+                if obj.Name:find("MyScript_Highlight") then
+                    obj:Destroy()
+                end
             end
         end
     end
-    return "❌ ESP отключен!"
+    return "❌ ESP отключен"
 end
 
--- Изменение скорости ходьбы
+-- Скорость ходьбы
 function MyScript:SetWalkspeed(speed)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = speed
-        return "🚶 Скорость ходьбы: " .. speed
+        LocalPlayer.Character.Humanoid.WalkSpeed = math.clamp(speed, 16, 100)
+        return "🚶 Скорость ходьбы установлена: " .. speed
     end
     return "❌ Не удалось изменить скорость"
 end
 
--- Авто-кликер (пример)
-function MyScript:AutoClicker(enabled)
-    if enabled then
-        print("🖱️ Авто-кликер включен")
-        -- Здесь будет логика авто-кликера
-        return "✅ Авто-кликер включен"
+-- Загрузка GUI
+function MyScript:LoadGUI()
+    local success, gui = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/gui.lua"))()
+    end)
+    
+    if success then
+        return "✅ GUI загружен!"
     else
-        print("🖱️ Авто-кликер выключен")
-        return "❌ Авто-кликер выключен"
+        return "❌ Ошибка загрузки GUI"
     end
 end
 
--- Инициализация
+-- Загрузка доп. функций
+function MyScript:LoadFeatures()
+    local success, features = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/features.lua"))()
+    end)
+    
+    if success then
+        MyScript.Features = features
+        return "✅ Дополнительные функции загружены!"
+    else
+        return "❌ Ошибка загрузки features"
+    end
+end
+
+-- Автоматическая инициализация
 MyScript:Hello()
 MyScript:SetWalkspeed(25)
 
