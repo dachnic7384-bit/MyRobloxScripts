@@ -1,4 +1,4 @@
--- Bee Swarm Simulator Safe Auto-Farm v2.0
+-- Bee Swarm Simulator PRO Auto-Farm v3.0
 -- Автор: dachnic7384-bit
 -- GitHub: https://github.com/dachnic7384-bit/MyRobloxScripts
 
@@ -7,7 +7,7 @@ if not game:IsLoaded() then
 end
 
 print("=========================================")
-print("🐝 BEE SWARM SAFE AUTO-FARM")
+print("🐝 BEE SWARM PRO AUTO-FARM v3.0")
 print("📁 GitHub: github.com/dachnic7384-bit/MyRobloxScripts")
 print("=========================================")
 
@@ -20,237 +20,359 @@ end
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BeeSwarm = {}
 
--- =========== БЕЗОПАСНЫЙ АВТО-ФАРМ ===========
+-- =========== АВТО-ФАРМ НА ПОЛЕ ===========
+BeeSwarm.CurrentField = "Sunflower"
 BeeSwarm.AutoFarmRunning = false
-BeeSwarm.AutoConvertRunning = false
-BeeSwarm.AutoBoostRunning = false
+BeeSwarm.AutoQuestRunning = false
+BeeSwarm.FarmConnection = nil
 
--- Безопасный сбор цветов (через реальные клики)
-function BeeSwarm:StartSafeAutoFarm()
+-- Координаты центров полей
+BeeSwarm.Fields = {
+    ["Sunflower"] = {
+        Center = Vector3.new(-44, 4, -264),
+        Radius = 60,
+        Flowers = {"Sunflower"}
+    },
+    ["Mushroom"] = {
+        Center = Vector3.new(108, 5, -197),
+        Radius = 60,
+        Flowers = {"Mushroom"}
+    },
+    ["Blue Flower"] = {
+        Center = Vector3.new(-129, 5, 83),
+        Radius = 60,
+        Flowers = {"Blue Flower"}
+    },
+    ["Clover"] = {
+        Center = Vector3.new(213, 4, 108),
+        Radius = 70,
+        Flowers = {"Clover"}
+    },
+    ["Spider"] = {
+        Center = Vector3.new(211, 6, -129),
+        Radius = 70,
+        Flowers = {"Spider"}
+    },
+    ["Bamboo"] = {
+        Center = Vector3.new(-354, 29, -178),
+        Radius = 80,
+        Flowers = {"Bamboo"}
+    },
+    ["Pineapple"] = {
+        Center = Vector3.new(-357, 28, 195),
+        Radius = 80,
+        Flowers = {"Pineapple"}
+    },
+    ["Strawberry"] = {
+        Center = Vector3.new(391, 29, 127),
+        Radius = 80,
+        Flowers = {"Strawberry"}
+    },
+    ["Cactus"] = {
+        Center = Vector3.new(406, 29, -249),
+        Radius = 80,
+        Flowers = {"Cactus"}
+    },
+    ["Pumpkin"] = {
+        Center = Vector3.new(-7, 4, 8),
+        Radius = 40,
+        Flowers = {"Pumpkin"}
+    }
+}
+
+-- Функция для поиска ближайшего цветка
+function BeeSwarm:FindNearestFlower(fieldName)
+    if not Workspace:FindFirstChild("Flowers") then return nil end
+    
+    local field = BeeSwarm.Fields[fieldName]
+    if not field then return nil end
+    
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local playerPos = character.HumanoidRootPart.Position
+    local closestFlower = nil
+    local closestDistance = math.huge
+    
+    for _, flower in pairs(Workspace.Flowers:GetChildren()) do
+        if flower:FindFirstChild("Click") and flower:FindFirstChild("Flower") then
+            -- Проверяем тип цветка
+            local flowerType = flower.Name
+            local isCorrectType = false
+            
+            for _, allowedType in pairs(field.Flowers) do
+                if string.find(flowerType, allowedType) then
+                    isCorrectType = true
+                    break
+                end
+            end
+            
+            if isCorrectType then
+                local flowerPos = flower.Flower.Position
+                local distanceToField = (flowerPos - field.Center).Magnitude
+                local distanceToPlayer = (flowerPos - playerPos).Magnitude
+                
+                -- Цветок должен быть в радиусе поля и не дальше 50 studs от игрока
+                if distanceToField <= field.Radius and distanceToPlayer < 50 and distanceToPlayer < closestDistance then
+                    closestFlower = flower
+                    closestDistance = distanceToPlayer
+                end
+            end
+        end
+    end
+    
+    return closestFlower
+end
+
+-- Основная функция авто-фарма
+function BeeSwarm:StartSmartAutoFarm()
     if BeeSwarm.AutoFarmRunning then return end
     
     BeeSwarm.AutoFarmRunning = true
-    print("🌻 Безопасный авто-фарм запущен (макро-режим)")
+    print("🌻 Умный авто-фарм запущен на поле: " .. BeeSwarm.CurrentField)
     
-    spawn(function()
-        while BeeSwarm.AutoFarmRunning do
-            -- Ждем между действиями
-            task.wait(0.3)
+    BeeSwarm.FarmConnection = RunService.Heartbeat:Connect(function()
+        if not BeeSwarm.AutoFarmRunning then return end
+        
+        local character = LocalPlayer.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+        
+        -- 1. Ищем ближайший цветок
+        local flower = BeeSwarm:FindNearestFlower(BeeSwarm.CurrentField)
+        
+        if flower then
+            local flowerPos = flower.Flower.Position
+            local playerPos = character.HumanoidRootPart.Position
+            local distance = (flowerPos - playerPos).Magnitude
             
-            -- Ищем ближайший цветок
-            local closestFlower = nil
-            local closestDistance = math.huge
-            
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local playerPos = LocalPlayer.Character.HumanoidRootPart.Position
-                
-                -- Ищем в Workspace.Flowers
-                if Workspace:FindFirstChild("Flowers") then
-                    for _, flower in pairs(Workspace.Flowers:GetChildren()) do
-                        if flower:FindFirstChild("Click") and flower:FindFirstChild("Flower") then
-                            local flowerPos = flower.Flower.Position
-                            local distance = (playerPos - flowerPos).Magnitude
-                            
-                            if distance < 50 and distance < closestDistance then
-                                closestFlower = flower
-                                closestDistance = distance
-                            end
-                        end
-                    end
-                end
-                
-                -- Если нашли цветок - кликаем по нему
-                if closestFlower then
-                    -- Подходим ближе если нужно
-                    if closestDistance > 10 then
-                        LocalPlayer.Character:MoveTo(closestFlower.Flower.Position)
-                        task.wait(0.5)
-                    end
-                    
-                    -- Имитируем реальный клик мышкой
-                    fireclickdetector(closestFlower.Click)
-                    task.wait(0.1)
-                else
-                    -- Если нет цветков рядом - ходим кругами
-                    local randomPos = Vector3.new(
-                        math.random(-50, 50),
-                        5,
-                        math.random(-50, 50)
-                    )
-                    LocalPlayer.Character:MoveTo(randomPos)
-                    task.wait(2)
-                end
+            -- 2. Если далеко - идем к цветку
+            if distance > 15 then
+                character:MoveTo(flowerPos)
+            else
+                -- 3. Если близко - собираем
+                fireclickdetector(flower.Click)
+            end
+        else
+            -- 4. Если нет цветков - ходим по кругу на поле
+            local field = BeeSwarm.Fields[BeeSwarm.CurrentField]
+            if field then
+                local angle = tick() * 2
+                local radius = field.Radius * 0.7
+                local targetPos = field.Center + Vector3.new(
+                    math.cos(angle) * radius,
+                    0,
+                    math.sin(angle) * radius
+                )
+                character:MoveTo(targetPos)
             end
         end
     end)
 end
 
-function BeeSwarm:StopSafeAutoFarm()
+function BeeSwarm:StopSmartAutoFarm()
+    if BeeSwarm.FarmConnection then
+        BeeSwarm.FarmConnection:Disconnect()
+        BeeSwarm.FarmConnection = nil
+    end
     BeeSwarm.AutoFarmRunning = false
-    print("🌻 Безопасный авто-фарм остановлен")
+    print("🌻 Умный авто-фарм остановлен")
 end
 
--- =========== АВТО-КОНВЕРТАЦИЯ МЕДА ===========
-function BeeSwarm:StartAutoConvert()
-    if BeeSwarm.AutoConvertRunning then return end
+-- =========== АВТО-КВЕСТЫ ===========
+function BeeSwarm:StartAutoQuests()
+    if BeeSwarm.AutoQuestRunning then return end
     
-    BeeSwarm.AutoConvertRunning = true
-    print("🍯 Авто-конвертация запущена")
+    BeeSwarm.AutoQuestRunning = true
+    print("📜 Авто-квесты запущены")
     
     spawn(function()
-        while BeeSwarm.AutoConvertRunning do
-            task.wait(5) -- Каждые 5 секунд
+        while BeeSwarm.AutoQuestRunning do
+            task.wait(10) -- Проверяем квесты каждые 10 секунд
             
-            -- Безопасная конвертация через GUI
+            -- Автоматически берем новые квесты
             pcall(function()
-                -- Открываем инвентарь
-                game:GetService("ReplicatedStorage").Events.ToggleInventory:FireServer(true)
-                task.wait(0.2)
+                -- Проверяем NPC для квестов
+                local npcs = {"Black Bear", "Brown Bear", "Polar Bear", "Science Bear"}
                 
-                -- Конвертируем
-                game:GetService("ReplicatedStorage").Events.ConvertPollenToHoney:FireServer()
-                task.wait(0.2)
-                
-                -- Закрываем инвентарь
-                game:GetService("ReplicatedStorage").Events.ToggleInventory:FireServer(false)
-            end)
-        end
-    end)
-end
-
-function BeeSwarm:StopAutoConvert()
-    BeeSwarm.AutoConvertRunning = false
-    print("🍯 Авто-конвертация остановлена")
-end
-
--- =========== АВТО-БУСТЫ ===========
-function BeeSwarm:StartAutoBoost()
-    if BeeSwarm.AutoBoostRunning then return end
-    
-    BeeSwarm.AutoBoostRunning = true
-    print("⚡ Авто-бусты запущены")
-    
-    spawn(function()
-        while BeeSwarm.AutoBoostRunning do
-            task.wait(30) -- Каждые 30 секунд
-            
-            pcall(function()
-                -- Используем бусты
-                local boosts = {
-                    "FieldBooster",
-                    "PineapplePatchBooster", 
-                    "StrawberryFieldBooster",
-                    "BlueFlowerFieldBooster"
-                }
-                
-                for _, boost in pairs(boosts) do
-                    game:GetService("ReplicatedStorage").Events.PlayerActivatedBooster:FireServer(boost)
-                    task.wait(0.5)
+                for _, npcName in pairs(npcs) do
+                    local npc = Workspace:FindFirstChild(npcName)
+                    if npc and npc:FindFirstChild("Click") then
+                        -- Подходим к NPC
+                        if LocalPlayer.Character then
+                            LocalPlayer.Character:MoveTo(npc.PrimaryPart.Position)
+                            task.wait(1)
+                            
+                            -- Берем квест
+                            fireclickdetector(npc.Click)
+                            task.wait(0.5)
+                            
+                            -- Выходим из диалога
+                            ReplicatedStorage.Events.ConversationEnded:FireServer()
+                        end
+                    end
                 end
             end)
         end
     end)
 end
 
-function BeeSwarm:StopAutoBoost()
-    BeeSwarm.AutoBoostRunning = false
-    print("⚡ Авто-бусты остановлены")
+function BeeSwarm:StopAutoQuests()
+    BeeSwarm.AutoQuestRunning = false
+    print("📜 Авто-квесты остановлены")
 end
 
--- =========== ТЕЛЕПОРТЫ ===========
-BeeSwarm.Fields = {
-    ["Sunflower"] = Vector3.new(10, 5, -40),
-    ["Mushroom"] = Vector3.new(60, 5, -20),
-    ["Blue Flower"] = Vector3.new(30, 5, 40),
-    ["Clover"] = Vector3.new(-20, 5, 60),
-    ["Spider"] = Vector3.new(-60, 5, 20),
-    ["Bamboo"] = Vector3.new(80, 5, -60),
-    ["Pineapple"] = Vector3.new(-80, 5, -30),
-    ["Strawberry"] = Vector3.new(40, 5, 80),
-    ["Cactus"] = Vector3.new(-40, 5, -80),
-    ["Pumpkin"] = Vector3.new(0, 5, 0)
-}
+-- =========== АВТО-КОНВЕРТАЦИЯ ===========
+function BeeSwarm:StartAutoConvert()
+    print("🍯 Авто-конвертация запущена")
+    
+    spawn(function()
+        while true do
+            task.wait(8) -- Каждые 8 секунд
+            
+            if not BeeSwarm.AutoFarmRunning then break end
+            
+            pcall(function()
+                -- Простая конвертация без открытия GUI
+                ReplicatedStorage.Events.ConvertPollenToHoney:FireServer()
+            end)
+        end
+    end)
+end
 
-function BeeSwarm:TeleportToField(fieldName)
-    if BeeSwarm.Fields[fieldName] and LocalPlayer.Character then
-        LocalPlayer.Character:MoveTo(BeeSwarm.Fields[fieldName])
-        return "✅ Телепорт: " .. fieldName
+-- =========== ТЕЛЕПОРТ НА ПОЛЕ ===========
+function BeeSwarm:SetField(fieldName)
+    if BeeSwarm.Fields[fieldName] then
+        BeeSwarm.CurrentField = fieldName
+        
+        if BeeSwarm.AutoFarmRunning then
+            -- Если авто-фарм запущен - телепортируем на поле
+            local field = BeeSwarm.Fields[fieldName]
+            if LocalPlayer.Character then
+                LocalPlayer.Character:MoveTo(field.Center)
+            end
+        end
+        
+        return "✅ Установлено поле: " .. fieldName
     end
     return "❌ Поле не найдено"
 end
 
--- =========== ЧИТЫ ===========
-function BeeSwarm:SpeedHack(enabled)
-    if enabled then
-        print("⚡ Ускорение ВКЛ")
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = 50
-            LocalPlayer.Character.Humanoid.JumpPower = 100
-        end
-    else
-        print("⚡ Ускорение ВЫКЛ")
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = 16
-            LocalPlayer.Character.Humanoid.JumpPower = 50
-        end
-    end
-end
-
-function BeeSwarm:NoClip(enabled)
-    if enabled then
-        print("👻 Ноклип ВКЛ")
-        local noclipConnection
-        noclipConnection = RunService.Stepped:Connect(function()
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
+-- =========== ВИЗУАЛЬНЫЕ ЭФФЕКТЫ ===========
+function BeeSwarm:CreateVisuals()
+    -- Подсветка активного поля
+    local field = BeeSwarm.Fields[BeeSwarm.CurrentField]
+    if field then
+        local highlight = Instance.new("Part")
+        highlight.Name = "FieldVisual"
+        highlight.Size = Vector3.new(field.Radius * 2, 1, field.Radius * 2)
+        highlight.Position = field.Center + Vector3.new(0, 1, 0)
+        highlight.Transparency = 0.7
+        highlight.Color = Color3.fromRGB(255, 255, 0)
+        highlight.Anchored = true
+        highlight.CanCollide = false
+        highlight.Parent = Workspace
         
-        -- Сохраняем соединение для отключения
-        BeeSwarm.NoClipConnection = noclipConnection
+        -- Окружность из частиц
+        local particles = Instance.new("ParticleEmitter")
+        particles.Parent = highlight
+        particles.Rate = 50
+        particles.Speed = NumberRange.new(5)
+        particles.Lifetime = NumberRange.new(2)
+        particles.Size = NumberSequence.new(0.5)
+        particles.Color = ColorSequence.new(Color3.fromRGB(255, 255, 0))
+    end
+end
+
+function BeeSwarm:RemoveVisuals()
+    local visual = Workspace:FindFirstChild("FieldVisual")
+    if visual then
+        visual:Destroy()
+    end
+end
+
+-- =========== ОПТИМИЗАЦИЯ (без белого экрана) ===========
+function BeeSwarm:OptimizeGame(enabled)
+    if enabled then
+        print("⚡ Оптимизация ВКЛ (без белого экрана)")
+        
+        -- Убираем только эффекты, не рендеринг
+        local Lighting = game:GetService("Lighting")
+        
+        -- Сохраняем оригинальные настройки
+        BeeSwarm.OriginalSettings = {
+            FogEnd = Lighting.FogEnd,
+            Brightness = Lighting.Brightness,
+            GlobalShadows = Lighting.GlobalShadows
+        }
+        
+        -- Оптимизируем
+        Lighting.FogEnd = 100000
+        Lighting.Brightness = 2
+        Lighting.GlobalShadows = false
+        
+        -- Убираем частицы
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") then
+                obj.Enabled = false
+            end
+        end
     else
-        print("👻 Ноклип ВЫКЛ")
-        if BeeSwarm.NoClipConnection then
-            BeeSwarm.NoClipConnection:Disconnect()
+        print("⚡ Оптимизация ВЫКЛ")
+        
+        -- Восстанавливаем настройки
+        if BeeSwarm.OriginalSettings then
+            local Lighting = game:GetService("Lighting")
+            Lighting.FogEnd = BeeSwarm.OriginalSettings.FogEnd
+            Lighting.Brightness = BeeSwarm.OriginalSettings.Brightness
+            Lighting.GlobalShadows = BeeSwarm.OriginalSettings.GlobalShadows
+        end
+        
+        -- Включаем частицы обратно
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") then
+                obj.Enabled = true
+            end
         end
     end
 end
 
--- =========== ИНФОРМАЦИЯ ===========
+-- =========== СТАТИСТИКА ===========
 function BeeSwarm:GetStats()
     pcall(function()
-        local stats = LocalPlayer:FindFirstChild("Stats")
+        local stats = LocalPlayer:WaitForChild("Stats", 5)
         if stats then
             print("=== СТАТИСТИКА ===")
             print("🍯 Мёд: " .. tostring(stats.Honey.Value))
             print("🌻 Пыльца: " .. tostring(stats.Pollen.Value))
             print("🎯 Токены: " .. tostring(stats.Tokens.Value))
-            print("🐝 Пчёлы: " .. tostring(#Workspace:FindFirstChild(LocalPlayer.Name .. "'s Hive").Bees:GetChildren()))
+            
+            local hive = Workspace:FindFirstChild(LocalPlayer.Name .. "'s Hive")
+            if hive then
+                print("🐝 Пчёлы: " .. tostring(#hive.Bees:GetChildren()))
+            end
+            
+            print("📍 Поле: " .. BeeSwarm.CurrentField)
             print("================")
         end
     end)
 end
 
--- =========== УВЕДОМЛЕНИЕ ===========
+-- =========== ИНИЦИАЛИЗАЦИЯ ===========
 function BeeSwarm:Notify()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "🐝 Bee Swarm Script v2.0",
-        Text = "Безопасный авто-фарм загружен!",
-        Duration = 5,
+        Title = "🐝 Bee Swarm PRO v3.0",
+        Text = "Умный авто-фарм загружен!\nF1 - вкл/выкл авто-фарм",
+        Duration = 6,
         Icon = "rbxassetid://4439880892"
     })
 end
 
--- Запускаем уведомление
 BeeSwarm:Notify()
+BeeSwarm:CreateVisuals()
 
 return BeeSwarm
