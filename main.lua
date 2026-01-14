@@ -1,13 +1,12 @@
--- Bee Swarm Quest Auto-Farmer v4.0
+-- Bee Swarm Auto-Farm v5.0 (Макрос версия)
 -- Автор: dachnic7384-bit
--- GitHub: https://github.com/dachnic7384-bit/MyRobloxScripts
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
 print("=========================================")
-print("🐝 BEE SWARM QUEST FARMER v4.0")
+print("🐝 BEE SWARM AUTO-FARM v5.0")
 print("📁 GitHub: github.com/dachnic7384-bit/MyRobloxScripts")
 print("=========================================")
 
@@ -20,139 +19,75 @@ end
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local QuestFarmer = {}
+local AutoFarm = {}
 
--- =========== СОСТОЯНИЕ СКРИПТА ===========
-QuestFarmer.Running = false
-QuestFarmer.CurrentQuest = nil
-QuestFarmer.CurrentField = "Sunflower"
-QuestFarmer.QuestsCompleted = 0
-QuestFarmer.Connection = nil
-QuestFarmer.IsWalking = false
+-- =========== СОСТОЯНИЕ ===========
+AutoFarm.Running = false
+AutoFarm.CurrentField = "Sunflower"
+AutoFarm.Connection = nil
+AutoFarm.Walking = false
+AutoFarm.AutoConvert = false
 
--- =========== НАСТРОЙКИ ПОЛЕЙ ===========
-QuestFarmer.Fields = {
+-- =========== ПОЛЯ ===========
+AutoFarm.Fields = {
     ["Sunflower"] = {
         Center = Vector3.new(-44, 4, -264),
-        Radius = 60,
-        FlowerType = "Sunflower"
+        Radius = 60
     },
     ["Mushroom"] = {
         Center = Vector3.new(108, 5, -197),
-        Radius = 60,
-        FlowerType = "Mushroom"
+        Radius = 60
     },
     ["Blue Flower"] = {
         Center = Vector3.new(-129, 5, 83),
-        Radius = 60,
-        FlowerType = "Blue Flower"
+        Radius = 60
     },
     ["Clover"] = {
         Center = Vector3.new(213, 4, 108),
-        Radius = 70,
-        FlowerType = "Clover"
+        Radius = 70
     },
     ["Spider"] = {
         Center = Vector3.new(211, 6, -129),
-        Radius = 70,
-        FlowerType = "Spider"
+        Radius = 70
     }
 }
 
--- =========== ПОЛУЧЕНИЕ ТЕКУЩЕГО КВЕСТА ===========
-function QuestFarmer:GetCurrentQuest()
-    -- Получаем активный квест
-    local questText = ""
-    
-    -- Проверяем доску квестов
-    pcall(function()
-        local questBoard = Workspace:FindFirstChild("QuestBoard")
-        if questBoard then
-            -- Получаем текст квеста
-            for _, child in pairs(questBoard:GetChildren()) do
-                if child:IsA("TextLabel") then
-                    questText = child.Text
-                    break
-                end
-            end
-        end
-    end)
-    
-    -- Парсим квест
-    if questText:find("Sunflower") then
-        return {Type = "Collect", Item = "Sunflower", Amount = self:ExtractAmount(questText)}
-    elseif questText:find("Mushroom") then
-        return {Type = "Collect", Item = "Mushroom", Amount = self:ExtractAmount(questText)}
-    elseif questText:find("Blue Flower") then
-        return {Type = "Collect", Item = "Blue Flower", Amount = self:ExtractAmount(questText)}
-    elseif questText:find("Clover") then
-        return {Type = "Collect", Item = "Clover", Amount = self:ExtractAmount(questText)}
-    elseif questText:find("Spider") then
-        return {Type = "Collect", Item = "Spider", Amount = self:ExtractAmount(questText)}
-    elseif questText:find("Collect") or questText:find("Gather") then
-        return {Type = "Collect", Item = self:DetectItem(questText), Amount = 100}
-    else
-        return nil
+-- =========== ПОЛУЧИТЬ ТЕКУЩИЙ КВЕСТ ===========
+function AutoFarm:GetCurrentQuest()
+    -- Простая проверка квеста (если есть доска квестов)
+    local questBoard = Workspace:FindFirstChild("QuestBoard")
+    if questBoard then
+        return "Collect Pollen" -- Просто собирать пыльцу
     end
+    return nil
 end
 
-function QuestFarmer:ExtractAmount(text)
-    -- Извлекаем количество из текста квеста
-    local amount = text:match("%d+")
-    return amount and tonumber(amount) or 100
-end
-
-function QuestFarmer:DetectItem(text)
-    -- Определяем предмет по тексту
-    if text:find("pollen") or text:find("Pollen") then
-        return "Pollen"
-    end
-    return "Sunflower" -- По умолчанию
-end
-
--- =========== ПОИСК ПРЕДМЕТА ДЛЯ КВЕСТА ===========
-function QuestFarmer:FindQuestItem()
-    local quest = self.CurrentQuest
-    if not quest then return nil end
-    
+-- =========== НАЙТИ БЛИЖАЙШИЙ ЦВЕТОК ===========
+function AutoFarm:FindNearestFlower()
     local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    if not character or not character:FindFirstChild("HumanoidRootPart") then 
+        return nil 
+    end
     
     local playerPos = character.HumanoidRootPart.Position
+    local field = self.Fields[self.CurrentField]
+    if not field then return nil end
+    
     local closestFlower = nil
     local closestDistance = math.huge
     
-    -- Определяем поле по типу квеста
-    local targetField = nil
-    for fieldName, fieldData in pairs(self.Fields) do
-        if fieldData.FlowerType == quest.Item then
-            targetField = fieldName
-            break
-        end
-    end
-    
-    if not targetField then
-        targetField = "Sunflower" -- По умолчанию
-    end
-    
-    self.CurrentField = targetField
-    local field = self.Fields[targetField]
-    
-    -- Ищем цветы на поле
+    -- Ищем цветы в радиусе поля
     if Workspace:FindFirstChild("Flowers") then
         for _, flower in pairs(Workspace.Flowers:GetChildren()) do
-            if flower:FindFirstChild("Click") and flower:FindFirstChild("Flower") then
+            if flower:FindFirstChild("Flower") and flower:FindFirstChild("Click") then
                 local flowerPos = flower.Flower.Position
                 local distanceToField = (flowerPos - field.Center).Magnitude
                 local distanceToPlayer = (flowerPos - playerPos).Magnitude
                 
-                -- Проверяем тип цветка
-                local isCorrectType = string.find(flower.Name, quest.Item) ~= nil
-                
-                if isCorrectType and distanceToField <= field.Radius and distanceToPlayer < 80 then
+                -- Цветок должен быть в радиусе поля и не дальше 50 studs
+                if distanceToField <= field.Radius and distanceToPlayer < 50 then
                     if distanceToPlayer < closestDistance then
                         closestFlower = flower
                         closestDistance = distanceToPlayer
@@ -165,67 +100,12 @@ function QuestFarmer:FindQuestItem()
     return closestFlower
 end
 
--- =========== ПРОВЕРКА ИНВЕНТАРЯ ===========
-function QuestFarmer:CheckInventory()
-    -- Проверяем статистику пыльцы
-    local stats = LocalPlayer:FindFirstChild("Stats")
-    if stats then
-        local pollen = stats:FindFirstChild("Pollen")
-        if pollen and pollen.Value >= 1000 then
-            return "FULL" -- Инвентарь полон
-        end
-    end
-    return "OK"
-end
-
--- =========== КОНВЕРТАЦИЯ МЕДА ===========
-function QuestFarmer:ConvertToHoney()
-    print("🍯 Конвертирую пыльцу в мёд...")
-    
-    local hive = Workspace:FindFirstChild(LocalPlayer.Name .. "'s Hive")
-    if hive then
-        -- Идем к улью
-        local character = LocalPlayer.Character
-        if character then
-            character:MoveTo(hive.Position)
-            task.wait(2) -- Ждем пока дойдем
-        end
-        
-        -- Конвертируем
-        pcall(function()
-            ReplicatedStorage.Events.ConvertPollenToHoney:FireServer()
-            task.wait(1)
-        end)
-    end
-end
-
--- =========== ВЗЯТИЕ НОВОГО КВЕСТА ===========
-function QuestFarmer:TakeNewQuest()
-    print("📜 Ищу новый квест...")
-    
-    -- Идем к доске квестов
-    local questBoard = Workspace:FindFirstChild("QuestBoard")
-    if questBoard and LocalPlayer.Character then
-        LocalPlayer.Character:MoveTo(questBoard.Position + Vector3.new(0, 0, -5))
-        task.wait(2)
-        
-        -- Берем квест
-        pcall(function()
-            if questBoard:FindFirstChild("Click") then
-                fireclickdetector(questBoard.Click)
-                task.wait(1)
-            end
-        end)
-    end
-end
-
--- =========== ОСНОВНАЯ ЛОГИКА АВТО-ФАРМА ===========
-function QuestFarmer:StartQuestFarmer()
+-- =========== ЗАПУСТИТЬ АВТО-ФАРМ ===========
+function AutoFarm:StartAutoFarm()
     if self.Running then return end
     
     self.Running = true
-    self.QuestsCompleted = 0
-    print("🚀 Запускаю авто-квест фармер...")
+    print("✅ Авто-фарм запущен на поле: " .. self.CurrentField)
     
     self.Connection = RunService.Heartbeat:Connect(function()
         if not self.Running then return end
@@ -233,73 +113,32 @@ function QuestFarmer:StartQuestFarmer()
         local character = LocalPlayer.Character
         if not character or not character:FindFirstChild("HumanoidRootPart") then return end
         
-        -- 1. Получаем текущий квест
-        if not self.CurrentQuest then
-            self.CurrentQuest = self:GetCurrentQuest()
-            if self.CurrentQuest then
-                print("🎯 Текущий квест: " .. self.CurrentQuest.Item .. " x" .. self.CurrentQuest.Amount)
-            else
-                print("📜 Нет активного квеста, беру новый...")
-                self:TakeNewQuest()
-                task.wait(3)
-                return
-            end
-        end
+        -- 1. Находим ближайший цветок
+        local flower = self:FindNearestFlower()
         
-        -- 2. Проверяем инвентарь
-        local inventoryStatus = self:CheckInventory()
-        if inventoryStatus == "FULL" then
-            print("🎒 Инвентарь полон! Конвертирую в мёд...")
-            self:ConvertToHoney()
-            task.wait(3)
-            return
-        end
-        
-        -- 3. Ищем предмет для квеста
-        local targetFlower = self:FindQuestItem()
-        
-        if targetFlower then
-            -- 4. Идем к цветку
-            local flowerPos = targetFlower.Flower.Position
+        if flower then
+            local flowerPos = flower.Flower.Position
             local playerPos = character.HumanoidRootPart.Position
             local distance = (flowerPos - playerPos).Magnitude
             
+            -- 2. Если далеко - идем пешком
             if distance > 10 then
-                -- Нормальная ходьба к цветку
-                if not self.IsWalking then
+                if not self.Walking then
                     character:MoveTo(flowerPos)
-                    self.IsWalking = true
+                    self.Walking = true
                 end
             else
-                -- Достаточно близко, собираем
-                self.IsWalking = false
-                fireclickdetector(targetFlower.Click)
-                task.wait(0.1)
-                
-                -- Проверяем завершение квеста
-                local stats = LocalPlayer:FindFirstChild("Stats")
-                if stats then
-                    local questProgress = stats:FindFirstChild("QuestProgress")
-                    if questProgress and questProgress.Value >= self.CurrentQuest.Amount then
-                        print("✅ Квест выполнен! Иду сдавать...")
-                        self.CurrentQuest = nil
-                        self.QuestsCompleted = self.QuestsCompleted + 1
-                        
-                        -- Идем сдавать квест
-                        local questBoard = Workspace:FindFirstChild("QuestBoard")
-                        if questBoard then
-                            character:MoveTo(questBoard.Position)
-                            task.wait(3)
-                        end
-                    end
-                end
+                -- 3. Если близко - кликаем
+                self.Walking = false
+                fireclickdetector(flower.Click)
+                task.wait(0.2) -- Пауза между кликами
             end
         else
-            -- 5. Если нет цветков - ходим по полю
+            -- 4. Если цветков нет - ходим кругами по полю
             local field = self.Fields[self.CurrentField]
             if field then
-                local angle = tick() * 0.5 -- Медленный круг
-                local radius = field.Radius * 0.6
+                local angle = tick() * 0.3 -- Медленное движение
+                local radius = field.Radius * 0.7
                 local targetPos = field.Center + Vector3.new(
                     math.cos(angle) * radius,
                     0,
@@ -310,59 +149,89 @@ function QuestFarmer:StartQuestFarmer()
                 local distance = (targetPos - playerPos).Magnitude
                 
                 if distance > 5 then
-                    if not self.IsWalking then
+                    if not self.Walking then
                         character:MoveTo(targetPos)
-                        self.IsWalking = true
+                        self.Walking = true
                     end
                 else
-                    self.IsWalking = false
+                    self.Walking = false
                 end
             end
         end
     end)
+    
+    -- Авто-конвертация если включена
+    if self.AutoConvert then
+        spawn(function()
+            while self.Running and self.AutoConvert do
+                task.wait(10) -- Каждые 10 секунд
+                self:ConvertToHoney()
+            end
+        end)
+    end
 end
 
-function QuestFarmer:StopQuestFarmer()
+-- =========== ОСТАНОВИТЬ АВТО-ФАРМ ===========
+function AutoFarm:StopAutoFarm()
     if self.Connection then
         self.Connection:Disconnect()
         self.Connection = nil
     end
     self.Running = false
-    self.IsWalking = false
-    print("🛑 Авто-квест фармер остановлен")
+    self.Walking = false
+    print("🛑 Авто-фарм остановлен")
+end
+
+-- =========== КОНВЕРТАЦИЯ ===========
+function AutoFarm:ConvertToHoney()
+    local events = game:GetService("ReplicatedStorage").Events
+    local success = pcall(function()
+        events.ConvertPollenToHoney:FireServer()
+    end)
+    
+    if success then
+        print("🍯 Конвертировано в мёд")
+        return true
+    end
+    return false
+end
+
+-- =========== СМЕНИТЬ ПОЛЕ ===========
+function AutoFarm:SetField(fieldName)
+    if self.Fields[fieldName] then
+        self.CurrentField = fieldName
+        
+        -- Если фарм запущен - идем на новое поле
+        if self.Running and LocalPlayer.Character then
+            local field = self.Fields[fieldName]
+            LocalPlayer.Character:MoveTo(field.Center)
+        end
+        
+        print("📍 Установлено поле: " .. fieldName)
+        return true
+    end
+    return false
 end
 
 -- =========== ИНФОРМАЦИЯ ===========
-function QuestFarmer:GetStatus()
-    local status = {
-        Running = self.Running,
-        CurrentQuest = self.CurrentQuest and self.CurrentQuest.Item or "Нет",
-        CurrentField = self.CurrentField,
-        QuestsCompleted = self.QuestsCompleted,
-        IsWalking = self.IsWalking
-    }
-    
-    print("=== СТАТУС ФАРМЕРА ===")
-    print("▶️ Работает: " .. tostring(status.Running))
-    print("🎯 Квест: " .. status.CurrentQuest)
-    print("🌍 Поле: " .. status.CurrentField)
-    print("✅ Выполнено: " .. status.QuestsCompleted .. " квестов")
-    print("🚶 Идет: " .. tostring(status.IsWalking))
-    print("=====================")
-    
-    return status
+function AutoFarm:GetStatus()
+    print("=== СТАТУС ===")
+    print("▶️ Работает: " .. tostring(self.Running))
+    print("🌍 Поле: " .. self.CurrentField)
+    print("🚶 Идет: " .. tostring(self.Walking))
+    print("🍯 Авто-конвертация: " .. tostring(self.AutoConvert))
+    print("==============")
 end
 
--- =========== ИНИЦИАЛИЗАЦИЯ ===========
-function QuestFarmer:Notify()
+-- =========== УВЕДОМЛЕНИЕ ===========
+function AutoFarm:Notify()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "🐝 Quest Auto-Farmer v4.0",
-        Text = "Загружен! Только ходьба, без телепортов!\nF1 - вкл/выкл",
-        Duration = 6,
+        Title = "🐝 Auto-Farm v5.0",
+        Text = "Загружен! Макрос режим активен",
+        Duration = 5,
         Icon = "rbxassetid://4439880892"
     })
 end
 
-QuestFarmer:Notify()
-
-return QuestFarmer
+AutoFarm:Notify()
+return AutoFarm
