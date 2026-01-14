@@ -1,4 +1,4 @@
--- GUI Bee Swarm PRO v3.0
+-- GUI Quest Auto-Farmer v4.0
 -- Автор: dachnic7384-bit
 
 if not game:IsLoaded() then
@@ -8,265 +8,202 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "🐝 Bee Swarm PRO v3.0",
-    LoadingTitle = "Загрузка умного авто-фарма...",
-    LoadingSubtitle = "by dachnic7384-bit",
-    ConfigurationSaving = { Enabled = true, FolderName = "BeeSwarmPRO" },
+    Name = "🐝 Quest Auto-Farmer v4.0",
+    LoadingTitle = "Загрузка автономного фармера...",
+    LoadingSubtitle = "Только ходьба! Без телепортов!",
+    ConfigurationSaving = { Enabled = true, FolderName = "QuestFarmer" },
     Discord = { Enabled = false },
     KeySystem = false,
 })
 
 -- Загружаем основной скрипт
-local BeeSwarm = loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/main.lua"))()
+local QuestFarmer = loadstring(game:HttpGet("https://raw.githubusercontent.com/dachnic7384-bit/MyRobloxScripts/main/main.lua"))()
 
--- Вкладка АВТО-ФАРМ
-local FarmTab = Window:CreateTab("🌻 Авто-Фарм", 4439880892)
+-- Вкладка ОСНОВНОЕ
+local MainTab = Window:CreateTab("🎯 Основное", 4439880892)
 
--- Выбор поля
-local fieldNames = {
-    "Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider",
-    "Bamboo", "Pineapple", "Strawberry", "Cactus", "Pumpkin"
-}
-
-local selectedField = "Sunflower"
-local fieldDropdown = FarmTab:CreateDropdown({
-    Name = "🌍 Выберите поле",
-    Options = fieldNames,
-    CurrentOption = "Sunflower",
-    Callback = function(Option)
-        selectedField = Option
-        local result = BeeSwarm:SetField(Option)
-        Rayfield:Notify({
-            Title = "Поле изменено",
-            Content = result,
-            Duration = 3
-        })
-    end
-})
-
--- Тумблеры
-local autoFarmToggle = FarmTab:CreateToggle({
-    Name = "🌻 Умный авто-фарм",
+local isRunning = false
+local farmerToggle = MainTab:CreateToggle({
+    Name = "▶️ Авто-квест фармер",
     CurrentValue = false,
     Callback = function(Value)
+        isRunning = Value
         if Value then
-            BeeSwarm:SetField(selectedField)
-            BeeSwarm:StartSmartAutoFarm()
+            QuestFarmer:StartQuestFarmer()
         else
-            BeeSwarm:StopSmartAutoFarm()
+            QuestFarmer:StopQuestFarmer()
         end
     end
 })
 
-local autoQuestToggle = FarmTab:CreateToggle({
-    Name = "📜 Авто-квесты (каждые 10с)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            BeeSwarm:StartAutoQuests()
-        else
-            BeeSwarm:StopAutoQuests()
-        end
-    end
-})
-
-local autoConvertToggle = FarmTab:CreateToggle({
-    Name = "🍯 Авто-конвертация (каждые 8с)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            BeeSwarm:StartAutoConvert()
-        end
-    end
-})
-
--- Групповые кнопки
-FarmTab:CreateButton({
-    Name = "▶️ Запустить ВСЁ",
+MainTab:CreateButton({
+    Name = "📊 Показать статус",
     Callback = function()
-        autoFarmToggle:Set(true)
-        autoQuestToggle:Set(true)
-        autoConvertToggle:Set(true)
+        QuestFarmer:GetStatus()
         Rayfield:Notify({
-            Title = "Авто-фарм",
-            Content = "Все функции запущены!",
+            Title = "Статус",
+            Content = "Информация в консоли (F9)",
             Duration = 3
         })
     end
 })
 
-FarmTab:CreateButton({
-    Name = "⏹️ Остановить ВСЁ",
+MainTab:CreateButton({
+    Name = "📜 Взять новый квест",
     Callback = function()
-        autoFarmToggle:Set(false)
-        autoQuestToggle:Set(false)
-        autoConvertToggle:Set(false)
+        QuestFarmer:TakeNewQuest()
         Rayfield:Notify({
-            Title = "Авто-фарм",
-            Content = "Все функции остановлены!",
+            Title = "Квест",
+            Content = "Иду брать новый квест...",
             Duration = 3
         })
     end
 })
 
--- Вкладка ВИЗУАЛ
-local VisualTab = Window:CreateTab("🎨 Визуал", 4439880892)
-
-VisualTab:CreateToggle({
-    Name = "📍 Подсветка поля",
-    CurrentValue = true,
-    Callback = function(Value)
-        if Value then
-            BeeSwarm:CreateVisuals()
-        else
-            BeeSwarm:RemoveVisuals()
-        end
-    end
-})
-
-VisualTab:CreateColorPicker({
-    Name = "🌈 Цвет подсветки",
-    Color = Color3.fromRGB(255, 255, 0),
-    Callback = function(Color)
-        -- Здесь будет логика изменения цвета
-    end
-})
-
-VisualTab:CreateToggle({
-    Name = "👁️ ESP пчел (в разработке)",
-    CurrentValue = false,
-    Callback = function(Value)
-        Rayfield:Notify({
-            Title = "ESP пчел",
-            Content = "Функция в разработке",
-            Duration = 3
-        })
-    end
-})
-
--- Вкладка ОПТИМИЗАЦИЯ
-local OptimizeTab = Window:CreateTab("⚡ Оптимизация", 4439880892)
-
-OptimizeTab:CreateToggle({
-    Name = "⚡ Оптимизация игры",
-    CurrentValue = false,
-    Callback = function(Value)
-        BeeSwarm:OptimizeGame(Value)
-        if Value then
-            Rayfield:Notify({
-                Title = "Оптимизация",
-                Content = "Включена (без белого экрана)",
-                Duration = 3
-            })
-        else
-            Rayfield:Notify({
-                Title = "Оптимизация",
-                Content = "Выключена",
-                Duration = 3
-            })
-        end
-    end
-})
-
-OptimizeTab:CreateSlider({
-    Name = "🎯 Дистанция рендера",
-    Range = {100, 1000},
-    Increment = 50,
-    Suffix = "studs",
-    CurrentValue = 500,
-    Callback = function(Value)
-        game:GetService("Lighting").FogEnd = Value
-    end
-})
-
-OptimizeTab:CreateButton({
-    Name = "🔄 Убрать лаги",
+MainTab:CreateButton({
+    Name = "🍯 Конвертировать в мёд",
     Callback = function()
-        -- Чистим мусор
-        for _, v in pairs(Workspace:GetChildren()) do
-            if v.Name == "FieldVisual" then
-                v:Destroy()
-            end
-        end
+        QuestFarmer:ConvertToHoney()
         Rayfield:Notify({
-            Title = "Оптимизация",
-            Content = "Временные объекты удалены",
+            Title = "Конвертация",
+            Content = "Конвертирую пыльцу в мёд...",
             Duration = 3
         })
     end
 })
 
--- Вкладка ИНФО
+-- Вкладка НАСТРОЙКИ
+local SettingsTab = Window:CreateTab("⚙️ Настройки", 4439880892)
+
+SettingsTab:CreateLabel("🔧 Автоматические действия:")
+SettingsTab:CreateLabel("- Авто-поиск цветов для квеста")
+SettingsTab:CreateLabel("- Авто-ходьба по полю")
+SettingsTab:CreateLabel("- Авто-конвертация при полном инвентаре")
+SettingsTab:CreateLabel("- Авто-взятие нового квеста")
+SettingsTab:CreateLabel("")
+SettingsTab:CreateLabel("🚫 Ограничения:")
+SettingsTab:CreateLabel("- ТОЛЬКО ходьба (без телепортов)")
+SettingsTab:CreateLabel("- Максимальная скорость 16 studs/s")
+SettingsTab:CreateLabel("- Медленные и плавные движения")
+SettingsTab:CreateLabel("- Похоже на реального игрока")
+
+SettingsTab:CreateSlider({
+    Name = "⏱️ Скорость ходьбы",
+    Range = {12, 20},
+    Increment = 1,
+    Suffix = "studs/s",
+    CurrentValue = 16,
+    Callback = function(Value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+-- Вкладка ИНФОРМАЦИЯ
 local InfoTab = Window:CreateTab("ℹ️ Информация", 4439880892)
 
-InfoTab:CreateButton({
-    Name = "📊 Показать статистику",
+InfoTab:CreateLabel("🐝 Quest Auto-Farmer v4.0")
+InfoTab:CreateLabel("Особенности:")
+InfoTab:CreateLabel("✅ Только нормальная ходьба")
+InfoTab:CreateLabel("✅ Авто-отслеживание квестов")
+InfoTab:CreateLabel("✅ Авто-смена полей под квест")
+InfoTab:CreateLabel("✅ Авто-конвертация при заполнении")
+InfoTab:CreateLabel("✅ Безопасный режим (без телепортов)")
+InfoTab:CreateLabel("")
+InfoTab:CreateLabel("🎮 Горячие клавиши:")
+InfoTab:CreateLabel("F1 - Вкл/выкл фармер")
+InfoTab:CreateLabel("F2 - Показать статус")
+InfoTab:CreateLabel("F3 - Взять квест")
+InfoTab:CreateLabel("RightShift - Меню")
+
+-- Вкладка СТАТИСТИКА
+local StatsTab = Window:CreateTab("📈 Статистика", 4439880892)
+
+local statsLabels = {}
+
+-- Функция обновления статистики
+local function updateStats()
+    local stats = LocalPlayer:FindFirstChild("Stats")
+    if stats then
+        local honey = stats:FindFirstChild("Honey")
+        local pollen = stats:FindFirstChild("Pollen")
+        local tokens = stats:FindFirstChild("Tokens")
+        
+        if honey then
+            if not statsLabels.Honey then
+                statsLabels.Honey = StatsTab:CreateLabel("🍯 Мёд: " .. honey.Value)
+            else
+                -- Обновляем существующую метку
+                statsLabels.Honey:Set("🍯 Мёд: " .. honey.Value)
+            end
+        end
+        
+        if pollen then
+            if not statsLabels.Pollen then
+                statsLabels.Pollen = StatsTab:CreateLabel("🌻 Пыльца: " .. pollen.Value)
+            else
+                statsLabels.Pollen:Set("🌻 Пыльца: " .. pollen.Value)
+            end
+        end
+        
+        if tokens then
+            if not statsLabels.Tokens then
+                statsLabels.Tokens = StatsTab:CreateLabel("🎯 Токены: " .. tokens.Value)
+            else
+                statsLabels.Tokens:Set("🎯 Токены: " .. tokens.Value)
+            end
+        end
+    end
+    
+    -- Статистика фармера
+    local status = QuestFarmer:GetStatus()
+    if not statsLabels.Quests then
+        statsLabels.Quests = StatsTab:CreateLabel("✅ Квестов выполнено: " .. (status.QuestsCompleted or 0))
+    else
+        statsLabels.Quests:Set("✅ Квестов выполнено: " .. (status.QuestsCompleted or 0))
+    end
+end
+
+StatsTab:CreateButton({
+    Name = "🔄 Обновить статистику",
     Callback = function()
-        BeeSwarm:GetStats()
-        Rayfield:Notify({
-            Title = "Статистика",
-            Content = "Смотри в консоли (F9)",
-            Duration = 3
-        })
+        updateStats()
     end
 })
-
-InfoTab:CreateLabel("🎮 Управление:")
-InfoTab:CreateLabel("F1 - Вкл/Выкл авто-фарм")
-InfoTab:CreateLabel("F2 - Сменить поле (цикл)")
-InfoTab:CreateLabel("F3 - Вкл/Выкл оптимизацию")
-InfoTab:CreateLabel("RightShift - Меню")
-InfoTab:CreateLabel("")
-InfoTab:CreateLabel("🐝 Особенности v3.0:")
-InfoTab:CreateLabel("- Умный поиск цветов на поле")
-InfoTab:CreateLabel("- Автоматические квесты")
-InfoTab:CreateLabel("- Подсветка активного поля")
-InfoTab:CreateLabel("- Безопасная оптимизация")
-InfoTab:CreateLabel("- Точные координаты полей")
 
 -- Горячие клавиши
 local UIS = game:GetService("UserInputService")
-local fieldIndex = 1
 
 UIS.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F1 then
-        autoFarmToggle:Set(not autoFarmToggle.CurrentValue)
+        farmerToggle:Set(not farmerToggle.CurrentValue)
         
     elseif input.KeyCode == Enum.KeyCode.F2 then
-        fieldIndex = fieldIndex + 1
-        if fieldIndex > #fieldNames then fieldIndex = 1 end
-        selectedField = fieldNames[fieldIndex]
-        fieldDropdown:Set(selectedField)
+        QuestFarmer:GetStatus()
         
     elseif input.KeyCode == Enum.KeyCode.F3 then
-        local optimizeToggle = OptimizeTab:FindFirstChild("Оптимизация игры")
-        if optimizeToggle then
-            optimizeToggle:Set(not optimizeToggle.CurrentValue)
-        end
+        QuestFarmer:TakeNewQuest()
     end
 end)
 
--- Функция обновления GUI
-local function updateGUI()
-    -- Здесь можно обновлять информацию
-end
-
--- Уведомление
-Rayfield:Notify({
-    Title = "🐝 Bee Swarm PRO v3.0",
-    Content = "Загружен! F1 - авто-фарм, F2 - сменить поле",
-    Duration = 5,
-    Image = 4439880892
-})
-
-print("✅ Bee Swarm PRO v3.0 готов к работе!")
-
--- Запускаем обновление GUI
+-- Авто-обновление статистики
 spawn(function()
     while true do
         task.wait(5)
-        updateGUI()
+        updateStats()
     end
 end)
+
+-- Уведомление
+Rayfield:Notify({
+    Title = "🐝 Quest Auto-Farmer v4.0",
+    Content = "Загружен!\nТолько ходьба, без телепортов!\nF1 - включить",
+    Duration = 6,
+    Image = 4439880892
+})
+
+print("✅ Quest Auto-Farmer v4.0 готов!")
+print("🎯 Фармит квесты, ходит пешком, конвертирует автоматически!")
 
 return Window
