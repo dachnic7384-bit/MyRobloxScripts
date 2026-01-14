@@ -1,4 +1,4 @@
--- GUI для безопасного авто-фарма Bee Swarm
+-- GUI Bee Swarm PRO v3.0
 -- Автор: dachnic7384-bit
 
 if not game:IsLoaded() then
@@ -8,10 +8,10 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "🐝 Bee Swarm Safe Auto-Farm",
-    LoadingTitle = "Загрузка безопасного скрипта...",
+    Name = "🐝 Bee Swarm PRO v3.0",
+    LoadingTitle = "Загрузка умного авто-фарма...",
     LoadingSubtitle = "by dachnic7384-bit",
-    ConfigurationSaving = { Enabled = true, FolderName = "BeeSwarmSafe" },
+    ConfigurationSaving = { Enabled = true, FolderName = "BeeSwarmPRO" },
     Discord = { Enabled = false },
     KeySystem = false,
 })
@@ -22,48 +22,71 @@ local BeeSwarm = loadstring(game:HttpGet("https://raw.githubusercontent.com/dach
 -- Вкладка АВТО-ФАРМ
 local FarmTab = Window:CreateTab("🌻 Авто-Фарм", 4439880892)
 
-local AutoFarmToggle = FarmTab:CreateToggle({
-    Name = "🌻 Авто-сбор пыльцы (Макрос)",
+-- Выбор поля
+local fieldNames = {
+    "Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider",
+    "Bamboo", "Pineapple", "Strawberry", "Cactus", "Pumpkin"
+}
+
+local selectedField = "Sunflower"
+local fieldDropdown = FarmTab:CreateDropdown({
+    Name = "🌍 Выберите поле",
+    Options = fieldNames,
+    CurrentOption = "Sunflower",
+    Callback = function(Option)
+        selectedField = Option
+        local result = BeeSwarm:SetField(Option)
+        Rayfield:Notify({
+            Title = "Поле изменено",
+            Content = result,
+            Duration = 3
+        })
+    end
+})
+
+-- Тумблеры
+local autoFarmToggle = FarmTab:CreateToggle({
+    Name = "🌻 Умный авто-фарм",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
-            BeeSwarm:StartSafeAutoFarm()
+            BeeSwarm:SetField(selectedField)
+            BeeSwarm:StartSmartAutoFarm()
         else
-            BeeSwarm:StopSafeAutoFarm()
+            BeeSwarm:StopSmartAutoFarm()
         end
     end
 })
 
-local AutoConvertToggle = FarmTab:CreateToggle({
-    Name = "🍯 Авто-конвертация в мёд",
+local autoQuestToggle = FarmTab:CreateToggle({
+    Name = "📜 Авто-квесты (каждые 10с)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            BeeSwarm:StartAutoQuests()
+        else
+            BeeSwarm:StopAutoQuests()
+        end
+    end
+})
+
+local autoConvertToggle = FarmTab:CreateToggle({
+    Name = "🍯 Авто-конвертация (каждые 8с)",
     CurrentValue = false,
     Callback = function(Value)
         if Value then
             BeeSwarm:StartAutoConvert()
-        else
-            BeeSwarm:StopAutoConvert()
         end
     end
 })
 
-local AutoBoostToggle = FarmTab:CreateToggle({
-    Name = "⚡ Авто-бусты (каждые 30с)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            BeeSwarm:StartAutoBoost()
-        else
-            BeeSwarm:StopAutoBoost()
-        end
-    end
-})
-
+-- Групповые кнопки
 FarmTab:CreateButton({
-    Name = "▶️ Запустить ВСЁ авто-фарм",
+    Name = "▶️ Запустить ВСЁ",
     Callback = function()
-        AutoFarmToggle:Set(true)
-        AutoConvertToggle:Set(true)
-        AutoBoostToggle:Set(true)
+        autoFarmToggle:Set(true)
+        autoQuestToggle:Set(true)
+        autoConvertToggle:Set(true)
         Rayfield:Notify({
             Title = "Авто-фарм",
             Content = "Все функции запущены!",
@@ -73,11 +96,11 @@ FarmTab:CreateButton({
 })
 
 FarmTab:CreateButton({
-    Name = "⏹️ Остановить ВСЁ авто-фарм",
+    Name = "⏹️ Остановить ВСЁ",
     Callback = function()
-        AutoFarmToggle:Set(false)
-        AutoConvertToggle:Set(false)
-        AutoBoostToggle:Set(false)
+        autoFarmToggle:Set(false)
+        autoQuestToggle:Set(false)
+        autoConvertToggle:Set(false)
         Rayfield:Notify({
             Title = "Авто-фарм",
             Content = "Все функции остановлены!",
@@ -86,63 +109,97 @@ FarmTab:CreateButton({
     end
 })
 
--- Вкладка ТЕЛЕПОРТЫ
-local TeleportTab = Window:CreateTab("🚀 Телепорты", 4439880892)
+-- Вкладка ВИЗУАЛ
+local VisualTab = Window:CreateTab("🎨 Визуал", 4439880892)
 
-local fields = {
-    "Sunflower", "Mushroom", "Blue Flower", "Clover", "Spider",
-    "Bamboo", "Pineapple", "Strawberry", "Cactus", "Pumpkin"
-}
-
-for _, field in pairs(fields) do
-    TeleportTab:CreateButton({
-        Name = "➡️ " .. field,
-        Callback = function()
-            local result = BeeSwarm:TeleportToField(field)
-            Rayfield:Notify({
-                Title = "Телепорт",
-                Content = result,
-                Duration = 3
-            })
+VisualTab:CreateToggle({
+    Name = "📍 Подсветка поля",
+    CurrentValue = true,
+    Callback = function(Value)
+        if Value then
+            BeeSwarm:CreateVisuals()
+        else
+            BeeSwarm:RemoveVisuals()
         end
-    })
-end
-
--- Вкладка ЧИТЫ
-local CheatsTab = Window:CreateTab("⚡ Читы", 4439880892)
-
-CheatsTab:CreateToggle({
-    Name = "⚡ Ускорение (Ходьба 50)",
-    CurrentValue = false,
-    Callback = function(Value)
-        BeeSwarm:SpeedHack(Value)
     end
 })
 
-CheatsTab:CreateToggle({
-    Name = "👻 Ноклип (Проход сквозь стены)",
-    CurrentValue = false,
-    Callback = function(Value)
-        BeeSwarm:NoClip(Value)
+VisualTab:CreateColorPicker({
+    Name = "🌈 Цвет подсветки",
+    Color = Color3.fromRGB(255, 255, 0),
+    Callback = function(Color)
+        -- Здесь будет логика изменения цвета
     end
 })
 
-CheatsTab:CreateSlider({
-    Name = "🎯 Дистанция сбора",
-    Range = {5, 50},
-    Increment = 5,
-    Suffix = "studs",
-    CurrentValue = 30,
+VisualTab:CreateToggle({
+    Name = "👁️ ESP пчел (в разработке)",
+    CurrentValue = false,
     Callback = function(Value)
         Rayfield:Notify({
-            Title = "Настройка",
-            Content = "Дистанция установлена: " .. Value,
+            Title = "ESP пчел",
+            Content = "Функция в разработке",
             Duration = 3
         })
     end
 })
 
-CheatsTab:CreateButton({
+-- Вкладка ОПТИМИЗАЦИЯ
+local OptimizeTab = Window:CreateTab("⚡ Оптимизация", 4439880892)
+
+OptimizeTab:CreateToggle({
+    Name = "⚡ Оптимизация игры",
+    CurrentValue = false,
+    Callback = function(Value)
+        BeeSwarm:OptimizeGame(Value)
+        if Value then
+            Rayfield:Notify({
+                Title = "Оптимизация",
+                Content = "Включена (без белого экрана)",
+                Duration = 3
+            })
+        else
+            Rayfield:Notify({
+                Title = "Оптимизация",
+                Content = "Выключена",
+                Duration = 3
+            })
+        end
+    end
+})
+
+OptimizeTab:CreateSlider({
+    Name = "🎯 Дистанция рендера",
+    Range = {100, 1000},
+    Increment = 50,
+    Suffix = "studs",
+    CurrentValue = 500,
+    Callback = function(Value)
+        game:GetService("Lighting").FogEnd = Value
+    end
+})
+
+OptimizeTab:CreateButton({
+    Name = "🔄 Убрать лаги",
+    Callback = function()
+        -- Чистим мусор
+        for _, v in pairs(Workspace:GetChildren()) do
+            if v.Name == "FieldVisual" then
+                v:Destroy()
+            end
+        end
+        Rayfield:Notify({
+            Title = "Оптимизация",
+            Content = "Временные объекты удалены",
+            Duration = 3
+        })
+    end
+})
+
+-- Вкладка ИНФО
+local InfoTab = Window:CreateTab("ℹ️ Информация", 4439880892)
+
+InfoTab:CreateButton({
     Name = "📊 Показать статистику",
     Callback = function()
         BeeSwarm:GetStats()
@@ -154,57 +211,62 @@ CheatsTab:CreateButton({
     end
 })
 
--- Вкладка НАСТРОЙКИ
-local SettingsTab = Window:CreateTab("⚙️ Настройки", 4439880892)
-
-SettingsTab:CreateLabel("⚡ Быстрые клавиши:")
-SettingsTab:CreateLabel("F1 - Вкл/Выкл авто-фарм")
-SettingsTab:CreateLabel("F2 - Вкл/Выкл ускорение")
-SettingsTab:CreateLabel("F3 - Телепорт на спавн")
-SettingsTab:CreateLabel("RightShift - Меню")
-SettingsTab:CreateLabel("")
-SettingsTab:CreateLabel("🐝 Особенности:")
-SettingsTab:CreateLabel("- Безопасный макро-режим")
-SettingsTab:CreateLabel("- Имитация реальных кликов")
-SettingsTab:CreateLabel("- Медленные интервалы")
-SettingsTab:CreateLabel("- Минимальный риск бана")
+InfoTab:CreateLabel("🎮 Управление:")
+InfoTab:CreateLabel("F1 - Вкл/Выкл авто-фарм")
+InfoTab:CreateLabel("F2 - Сменить поле (цикл)")
+InfoTab:CreateLabel("F3 - Вкл/Выкл оптимизацию")
+InfoTab:CreateLabel("RightShift - Меню")
+InfoTab:CreateLabel("")
+InfoTab:CreateLabel("🐝 Особенности v3.0:")
+InfoTab:CreateLabel("- Умный поиск цветов на поле")
+InfoTab:CreateLabel("- Автоматические квесты")
+InfoTab:CreateLabel("- Подсветка активного поля")
+InfoTab:CreateLabel("- Безопасная оптимизация")
+InfoTab:CreateLabel("- Точные координаты полей")
 
 -- Горячие клавиши
 local UIS = game:GetService("UserInputService")
+local fieldIndex = 1
 
 UIS.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F1 then
-        AutoFarmToggle:Set(not AutoFarmToggle.CurrentValue)
+        autoFarmToggle:Set(not autoFarmToggle.CurrentValue)
+        
     elseif input.KeyCode == Enum.KeyCode.F2 then
-        BeeSwarm:SpeedHack(not BeeSwarm.SpeedEnabled)
-        BeeSwarm.SpeedEnabled = not BeeSwarm.SpeedEnabled
+        fieldIndex = fieldIndex + 1
+        if fieldIndex > #fieldNames then fieldIndex = 1 end
+        selectedField = fieldNames[fieldIndex]
+        fieldDropdown:Set(selectedField)
+        
     elseif input.KeyCode == Enum.KeyCode.F3 then
-        BeeSwarm:TeleportToField("Pumpkin")
+        local optimizeToggle = OptimizeTab:FindFirstChild("Оптимизация игры")
+        if optimizeToggle then
+            optimizeToggle:Set(not optimizeToggle.CurrentValue)
+        end
     end
 end)
 
--- Вкладка ИНФО
-local InfoTab = Window:CreateTab("ℹ️ Информация", 4439880892)
+-- Функция обновления GUI
+local function updateGUI()
+    -- Здесь можно обновлять информацию
+end
 
-InfoTab:CreateLabel("🐝 Bee Swarm Safe Auto-Farm")
-InfoTab:CreateLabel("Версия: 2.0 (Безопасная)")
-InfoTab:CreateLabel("Автор: dachnic7384-bit")
-InfoTab:CreateLabel("GitHub: github.com/dachnic7384-bit")
-InfoTab:CreateLabel("")
-InfoTab:CreateLabel("⚠️ Безопасный режим:")
-InfoTab:CreateLabel("- Использует макрос кликов")
-InfoTab:CreateLabel("- Медленные интервалы")
-InfoTab:CreateLabel("- Не спамит сервер")
-InfoTab:CreateLabel("- Минимальный риск")
-
--- Уведомление о загрузке
+-- Уведомление
 Rayfield:Notify({
-    Title = "🐝 Безопасный авто-фарм",
-    Content = "Загружен! F1 - авто-фарм, RightShift - меню",
+    Title = "🐝 Bee Swarm PRO v3.0",
+    Content = "Загружен! F1 - авто-фарм, F2 - сменить поле",
     Duration = 5,
     Image = 4439880892
 })
 
-print("✅ Безопасный авто-фарм готов! F1 - включить")
+print("✅ Bee Swarm PRO v3.0 готов к работе!")
+
+-- Запускаем обновление GUI
+spawn(function()
+    while true do
+        task.wait(5)
+        updateGUI()
+    end
+end)
 
 return Window
