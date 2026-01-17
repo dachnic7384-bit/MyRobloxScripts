@@ -1,5 +1,5 @@
--- Flick FPS Script v1.0
--- ESP + Aimbot + FOV + GUI
+-- Flick FPS Script FIXED
+-- Исправлены все баги: ESP, Aimbot, FOV Circle
 -- Автор: dachnic7384-bit
 
 if not game:IsLoaded() then
@@ -21,41 +21,27 @@ local Camera = Workspace.CurrentCamera
 
 -- Настройки
 local Settings = {
-    ESP = {
-        Enabled = false,
-        Box = false,
-        Tracers = false,
-        Names = false,
-        Health = false,
-        Distance = false,
-        Color = Color3.fromRGB(255, 0, 0)
-    },
+    ESP = {Enabled = false},
     Aimbot = {
         Enabled = false,
         FOV = 100,
-        Smoothness = 0.3,
-        TargetPart = "Head",
-        TeamCheck = true,
-        VisibleCheck = true
+        Smoothness = 0.1,
+        Target = "Head",
+        Keybind = Enum.KeyCode.Q
     },
-    FOV = {
+    FOVCircle = {
         Enabled = false,
         Size = 100,
-        Color = Color3.fromRGB(255, 255, 255),
-        Transparency = 0.5
+        Color = Color3.fromRGB(255, 255, 255)
     },
-    Misc = {
-        Triggerbot = false,
-        NoRecoil = false,
-        InfiniteAmmo = false,
-        RapidFire = false
-    }
+    ThirdPerson = false,
+    WalkSpeed = 16
 }
 
--- Создание окна GUI
+-- Создаем окно GUI
 local Window = Rayfield:CreateWindow({
-    Name = "🎯 Flick FPS Script",
-    LoadingTitle = "Загрузка хаков...",
+    Name = "🎯 Flick FPS Menu",
+    LoadingTitle = "Загрузка...",
     LoadingSubtitle = "by dachnic7384-bit",
     ConfigurationSaving = { Enabled = true, FolderName = "FlickFPS" },
     Discord = { Enabled = false },
@@ -78,38 +64,6 @@ VisualTab:CreateToggle({
     end
 })
 
-VisualTab:CreateToggle({
-    Name = "Боксы",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.ESP.Box = Value
-    end
-})
-
-VisualTab:CreateToggle({
-    Name = "Трейсеры (линии)",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.ESP.Tracers = Value
-    end
-})
-
-VisualTab:CreateToggle({
-    Name = "Имена",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.ESP.Names = Value
-    end
-})
-
-VisualTab:CreateColorPicker({
-    Name = "Цвет ESP",
-    Color = Color3.fromRGB(255, 0, 0),
-    Callback = function(Color)
-        Settings.ESP.Color = Color
-    end
-})
-
 -- =========== ВКЛАДКА: AIMBOT ===========
 local AimbotTab = Window:CreateTab("🎯 Aimbot", 4483362458)
 
@@ -119,56 +73,35 @@ AimbotTab:CreateToggle({
     Callback = function(Value)
         Settings.Aimbot.Enabled = Value
         if Value then
-            StartAimbot()
+            print("✅ Aimbot включен (удерживай Q)")
+        else
+            print("❌ Aimbot выключен")
         end
     end
 })
 
-AimbotTab:CreateDropdown({
-    Name = "Часть тела",
-    Options = {"Head", "Torso", "HumanoidRootPart"},
-    CurrentOption = "Head",
-    Callback = function(Option)
-        Settings.Aimbot.TargetPart = Option
-    end
-})
-
 AimbotTab:CreateSlider({
-    Name = "FOV (поле зрения)",
-    Range = {10, 500},
-    Increment = 5,
+    Name = "FOV Размер",
+    Range = {50, 300},
+    Increment = 10,
     Suffix = "px",
     CurrentValue = 100,
     Callback = function(Value)
         Settings.Aimbot.FOV = Value
+        if Settings.FOVCircle.Enabled then
+            UpdateFOVCircle()
+        end
     end
 })
 
 AimbotTab:CreateSlider({
     Name = "Сглаживание",
-    Range = {0, 1},
+    Range = {0.05, 1},
     Increment = 0.05,
     Suffix = "",
-    CurrentValue = 0.3,
+    CurrentValue = 0.1,
     Callback = function(Value)
         Settings.Aimbot.Smoothness = Value
-    end
-})
-
-AimbotTab:CreateToggle({
-    Name = "Проверка на команду",
-    CurrentValue = true,
-    Callback = function(Value)
-        Settings.Aimbot.TeamCheck = Value
-    end
-})
-
-AimbotTab:CreateKeybind({
-    Name = "Клавиша аимбота",
-    CurrentKeybind = "Q",
-    HoldToInteract = true,
-    Callback = function(Key)
-        Settings.Aimbot.Keybind = Key
     end
 })
 
@@ -179,7 +112,7 @@ FOVTab:CreateToggle({
     Name = "Показать FOV круг",
     CurrentValue = false,
     Callback = function(Value)
-        Settings.FOV.Enabled = Value
+        Settings.FOVCircle.Enabled = Value
         if Value then
             CreateFOVCircle()
         else
@@ -188,35 +121,11 @@ FOVTab:CreateToggle({
     end
 })
 
-FOVTab:CreateSlider({
-    Name = "Размер FOV",
-    Range = {10, 500},
-    Increment = 5,
-    Suffix = "px",
-    CurrentValue = 100,
-    Callback = function(Value)
-        Settings.FOV.Size = Value
-        UpdateFOVCircle()
-    end
-})
-
 FOVTab:CreateColorPicker({
-    Name = "Цвет FOV",
+    Name = "Цвет круга",
     Color = Color3.fromRGB(255, 255, 255),
     Callback = function(Color)
-        Settings.FOV.Color = Color
-        UpdateFOVCircle()
-    end
-})
-
-FOVTab:CreateSlider({
-    Name = "Прозрачность",
-    Range = {0, 1},
-    Increment = 0.05,
-    Suffix = "",
-    CurrentValue = 0.5,
-    Callback = function(Value)
-        Settings.FOV.Transparency = Value
+        Settings.FOVCircle.Color = Color
         UpdateFOVCircle()
     end
 })
@@ -225,45 +134,14 @@ FOVTab:CreateSlider({
 local MiscTab = Window:CreateTab("⚡ Misc", 4483362458)
 
 MiscTab:CreateToggle({
-    Name = "Триггербот (авто-огонь)",
+    Name = "Третье лицо",
     CurrentValue = false,
     Callback = function(Value)
-        Settings.Misc.Triggerbot = Value
+        Settings.ThirdPerson = Value
         if Value then
-            StartTriggerbot()
-        end
-    end
-})
-
-MiscTab:CreateToggle({
-    Name = "Нет отдачи",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.Misc.NoRecoil = Value
-        if Value then
-            NoRecoil()
-        end
-    end
-})
-
-MiscTab:CreateToggle({
-    Name = "Бесконечные патроны",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.Misc.InfiniteAmmo = Value
-        if Value then
-            InfiniteAmmo()
-        end
-    end
-})
-
-MiscTab:CreateToggle({
-    Name = "Быстрая стрельба",
-    CurrentValue = false,
-    Callback = function(Value)
-        Settings.Misc.RapidFire = Value
-        if Value then
-            RapidFire()
+            EnableThirdPerson()
+        else
+            DisableThirdPerson()
         end
     end
 })
@@ -275,184 +153,126 @@ MiscTab:CreateSlider({
     Suffix = "studs/s",
     CurrentValue = 16,
     Callback = function(Value)
+        Settings.WalkSpeed = Value
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = Value
         end
     end
 })
 
--- =========== ВКЛАДКА: INFO ===========
-local InfoTab = Window:CreateTab("ℹ️ Info", 4483362458)
-
-InfoTab:CreateLabel("🎯 Flick FPS Script v1.0")
-InfoTab:CreateLabel("👨💻 Автор: dachnic7384-bit")
-InfoTab:CreateLabel("📁 GitHub: github.com/dachnic7384-bit")
-InfoTab:CreateLabel("")
-InfoTab:CreateLabel("🎮 Управление:")
-InfoTab:CreateLabel("RightShift - Открыть/Закрыть меню")
-InfoTab:CreateLabel("Q - Аимбот (удерживать)")
-InfoTab:CreateLabel("F1 - Вкл/Выкл ESP")
-InfoTab:CreateLabel("F2 - Вкл/Выкл FOV круг")
-
--- =========== ФУНКЦИИ ESP ===========
-local ESPObjects = {}
+-- =========== ESP СИСТЕМА ===========
+local ESPItems = {}
 
 function StartESP()
     ClearESP()
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            CreateESP(player)
+        if player ~= LocalPlayer and player.Character then
+            AddESP(player)
         end
     end
     
+    -- Следим за новыми игроками
     Players.PlayerAdded:Connect(function(player)
-        CreateESP(player)
+        player.CharacterAdded:Connect(function()
+            if Settings.ESP.Enabled then
+                AddESP(player)
+            end
+        end)
     end)
     
-    Players.PlayerRemoving:Connect(function(player)
-        if ESPObjects[player] then
-            for _, obj in pairs(ESPObjects[player]) do
-                obj:Destroy()
+    -- Обновление ESP
+    RunService.RenderStepped:Connect(function()
+        if not Settings.ESP.Enabled then return end
+        
+        for player, esp in pairs(ESPItems) do
+            if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local root = player.Character.HumanoidRootPart
+                local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                
+                if onScreen and esp.Box then
+                    esp.Box.Visible = true
+                    esp.Box.Size = Vector3.new(4, 6, 1)
+                    esp.Box.CFrame = CFrame.new(root.Position)
+                else
+                    if esp.Box then esp.Box.Visible = false end
+                end
             end
-            ESPObjects[player] = nil
         end
     end)
 end
 
-function CreateESP(player)
+function AddESP(player)
     if not player.Character then return end
     
-    ESPObjects[player] = {}
+    ESPItems[player] = {}
     
-    -- Бокс
-    if Settings.ESP.Box then
-        local box = Instance.new("BoxHandleAdornment")
-        box.Name = "ESP_Box"
-        box.Adornee = player.Character:WaitForChild("HumanoidRootPart")
-        box.AlwaysOnTop = true
-        box.ZIndex = 5
-        box.Size = Vector3.new(4, 6, 1)
-        box.Transparency = 0.7
-        box.Color3 = Settings.ESP.Color
-        box.Parent = player.Character.HumanoidRootPart
-        
-        table.insert(ESPObjects[player], box)
-    end
+    -- Бокс ESP
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "ESP_Box"
+    box.Adornee = player.Character:WaitForChild("HumanoidRootPart")
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Size = Vector3.new(4, 6, 1)
+    box.Transparency = 0.3
+    box.Color3 = Color3.fromRGB(255, 0, 0)
+    box.Parent = player.Character.HumanoidRootPart
     
-    -- Имя
-    if Settings.ESP.Names then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Name"
-        billboard.Adornee = player.Character:WaitForChild("Head")
-        billboard.Size = UDim2.new(0, 200, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-        billboard.AlwaysOnTop = true
-        
-        local text = Instance.new("TextLabel")
-        text.Parent = billboard
-        text.BackgroundTransparency = 1
-        text.Size = UDim2.new(1, 0, 1, 0)
-        text.Text = player.Name
-        text.TextColor3 = Settings.ESP.Color
-        text.TextStrokeTransparency = 0.5
-        text.TextSize = 18
-        
-        billboard.Parent = player.Character.Head
-        table.insert(ESPObjects[player], billboard)
-    end
+    ESPItems[player].Box = box
     
-    -- Трейсеры
-    if Settings.ESP.Tracers then
-        local tracer = Instance.new("Frame")
-        tracer.Name = "ESP_Tracer"
-        tracer.BackgroundColor3 = Settings.ESP.Color
-        tracer.BorderSizePixel = 0
-        tracer.Size = UDim2.new(0, 2, 0, 200)
-        tracer.AnchorPoint = Vector2.new(0.5, 1)
-        tracer.Position = UDim2.new(0.5, 0, 1, -50)
-        tracer.Parent = game.CoreGui
-        
-        local connection = RunService.RenderStepped:Connect(function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    tracer.Visible = true
-                    tracer.Position = UDim2.new(0, pos.X, 0, pos.Y)
-                else
-                    tracer.Visible = false
-                end
-            else
-                tracer:Destroy()
-                connection:Disconnect()
-            end
-        end)
-        
-        table.insert(ESPObjects[player], {tracer, connection})
-    end
+    -- Имя игрока
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Name"
+    billboard.Adornee = player.Character:WaitForChild("Head")
+    billboard.Size = UDim2.new(0, 100, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    
+    local text = Instance.new("TextLabel")
+    text.Parent = billboard
+    text.BackgroundTransparency = 1
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.Text = player.Name
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    text.TextStrokeTransparency = 0
+    text.TextSize = 14
+    
+    billboard.Parent = player.Character.Head
+    ESPItems[player].Name = billboard
 end
 
 function ClearESP()
-    for player, objects in pairs(ESPObjects) do
-        for _, obj in pairs(objects) do
-            if type(obj) == "table" then
-                obj[1]:Destroy()
-                if obj[2] then obj[2]:Disconnect() end
-            else
-                obj:Destroy()
-            end
-        end
+    for player, esp in pairs(ESPItems) do
+        if esp.Box then esp.Box:Destroy() end
+        if esp.Name then esp.Name:Destroy() end
     end
-    ESPObjects = {}
+    ESPItems = {}
 end
 
--- =========== ФУНКЦИИ AIMBOT ===========
-function StartAimbot()
-    local aimbotConnection
-    aimbotConnection = RunService.RenderStepped:Connect(function()
-        if not Settings.Aimbot.Enabled then
-            aimbotConnection:Disconnect()
-            return
-        end
-        
-        local target = GetClosestPlayer()
-        if target and UserInputService:IsKeyDown(Enum.KeyCode.Q) then
-            AimAt(target)
-        end
-    end)
-end
-
+-- =========== AIMBOT СИСТЕМА ===========
 function GetClosestPlayer()
     local closestPlayer = nil
     local closestDistance = Settings.Aimbot.FOV
     
+    local mousePos = UserInputService:GetMouseLocation()
+    
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            -- Проверка на команду
-            if Settings.Aimbot.TeamCheck and player.Team == LocalPlayer.Team then
-                continue
+            local targetPart = player.Character:FindFirstChild(Settings.Aimbot.Target)
+            if not targetPart then
+                targetPart = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
             end
             
-            local targetPart = player.Character:FindFirstChild(Settings.Aimbot.TargetPart)
             if targetPart then
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                
                 if onScreen then
-                    local mousePos = UserInputService:GetMouseLocation()
                     local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                     
                     if distance < closestDistance then
-                        -- Проверка на видимость
-                        if Settings.Aimbot.VisibleCheck then
-                            local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 1000)
-                            local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, player.Character})
-                            if hit and hit:IsDescendantOf(player.Character) then
-                                closestPlayer = player
-                                closestDistance = distance
-                            end
-                        else
-                            closestPlayer = player
-                            closestDistance = distance
-                        end
+                        closestPlayer = player
+                        closestDistance = distance
                     end
                 end
             end
@@ -462,106 +282,112 @@ function GetClosestPlayer()
     return closestPlayer
 end
 
-function AimAt(player)
-    if not player or not player.Character then return end
+function AimAtPlayer()
+    if not Settings.Aimbot.Enabled then return end
     
-    local targetPart = player.Character:FindFirstChild(Settings.Aimbot.TargetPart)
-    if not targetPart then return end
+    local targetPlayer = GetClosestPlayer()
+    if not targetPlayer or not targetPlayer.Character then return end
     
-    local camera = Workspace.CurrentCamera
-    local targetPosition = targetPart.Position
+    local targetPart = targetPlayer.Character:FindFirstChild(Settings.Aimbot.Target)
+    if not targetPart then
+        targetPart = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    end
     
-    -- Сглаживание
-    local currentCFrame = camera.CFrame
-    local targetCFrame = CFrame.new(camera.CFrame.Position, targetPosition)
-    local smoothedCFrame = currentCFrame:Lerp(targetCFrame, Settings.Aimbot.Smoothness)
-    
-    camera.CFrame = smoothedCFrame
+    if targetPart then
+        local currentCFrame = Camera.CFrame
+        local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+        
+        -- Плавное прицеливание
+        Camera.CFrame = currentCFrame:Lerp(targetCFrame, Settings.Aimbot.Smoothness)
+    end
 end
 
--- =========== ФУНКЦИИ FOV CIRCLE ===========
-local FOVCircle
+-- =========== FOV CIRCLE СИСТЕМА ===========
+local FOVCircleFrame
 
 function CreateFOVCircle()
     RemoveFOVCircle()
     
-    FOVCircle = Instance.new("ScreenGui")
-    FOVCircle.Name = "FOV_Circle"
-    FOVCircle.ResetOnSpawn = false
-    FOVCircle.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    FOVCircleFrame = Instance.new("ScreenGui")
+    FOVCircleFrame.Name = "FOVCircle"
+    FOVCircleFrame.ResetOnSpawn = false
+    FOVCircleFrame.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    FOVCircleFrame.Parent = game.CoreGui
     
     local circle = Instance.new("Frame")
     circle.Name = "Circle"
+    circle.AnchorPoint = Vector2.new(0.5, 0.5)
+    circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    circle.Size = UDim2.new(0, Settings.FOVCircle.Size, 0, Settings.FOVCircle.Size)
     circle.BackgroundTransparency = 1
-    circle.Size = UDim2.new(0, Settings.FOV.Size, 0, Settings.FOV.Size)
-    circle.Position = UDim2.new(0.5, -Settings.FOV.Size/2, 0.5, -Settings.FOV.Size/2)
-    circle.Parent = FOVCircle
+    circle.Parent = FOVCircleFrame
     
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(1, 0)
     UICorner.Parent = circle
     
     local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Settings.FOV.Color
+    UIStroke.Color = Settings.FOVCircle.Color
     UIStroke.Thickness = 2
-    UIStroke.Transparency = Settings.FOV.Transparency
+    UIStroke.Transparency = 0.5
     UIStroke.Parent = circle
     
-    FOVCircle.Parent = game.CoreGui
+    print("✅ FOV Circle создан")
 end
 
 function UpdateFOVCircle()
-    if FOVCircle then
-        local circle = FOVCircle:FindFirstChild("Circle")
-        if circle then
-            circle.Size = UDim2.new(0, Settings.FOV.Size, 0, Settings.FOV.Size)
-            circle.Position = UDim2.new(0.5, -Settings.FOV.Size/2, 0.5, -Settings.FOV.Size/2)
-            
-            local stroke = circle:FindFirstChild("UIStroke")
-            if stroke then
-                stroke.Color = Settings.FOV.Color
-                stroke.Transparency = Settings.FOV.Transparency
-            end
+    if FOVCircleFrame and FOVCircleFrame:FindFirstChild("Circle") then
+        local circle = FOVCircleFrame.Circle
+        circle.Size = UDim2.new(0, Settings.Aimbot.FOV, 0, Settings.Aimbot.FOV)
+        
+        local stroke = circle:FindFirstChild("UIStroke")
+        if stroke then
+            stroke.Color = Settings.FOVCircle.Color
         end
     end
 end
 
 function RemoveFOVCircle()
-    if FOVCircle then
-        FOVCircle:Destroy()
-        FOVCircle = nil
+    if FOVCircleFrame then
+        FOVCircleFrame:Destroy()
+        FOVCircleFrame = nil
     end
 end
 
--- =========== MISC ФУНКЦИИ ===========
-function StartTriggerbot()
-    spawn(function()
-        while Settings.Misc.Triggerbot do
-            wait(0.1)
-            local target = GetClosestPlayer()
-            if target and target.Character then
-                mouse1press()
-                wait(0.05)
-                mouse1release()
-            end
+-- =========== ТРЕТЬЕ ЛИЦО ===========
+function EnableThirdPerson()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.CameraOffset = Vector3.new(0, 0, -10)
         end
-    end)
+    end
 end
 
-function NoRecoil()
-    -- Логика отключения отдачи
-    print("🔫 Отдача отключена")
+function DisableThirdPerson()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.CameraOffset = Vector3.new(0, 0, 0)
+        end
+    end
 end
 
-function InfiniteAmmo()
-    -- Логика бесконечных патронов
-    print("∞ Бесконечные патроны включены")
-end
-
-function RapidFire()
-    -- Логика быстрой стрельбы
-    print("⚡ Быстрая стрельба включена")
-end
+-- =========== ОБНОВЛЕНИЕ AIMBOT ===========
+RunService.RenderStepped:Connect(function()
+    -- Aimbot (удерживаем Q)
+    if Settings.Aimbot.Enabled and UserInputService:IsKeyDown(Settings.Aimbot.Keybind) then
+        AimAtPlayer()
+    end
+    
+    -- Обновление FOV Circle
+    if Settings.FOVCircle.Enabled and FOVCircleFrame then
+        local circle = FOVCircleFrame:FindFirstChild("Circle")
+        if circle then
+            circle.Size = UDim2.new(0, Settings.Aimbot.FOV, 0, Settings.Aimbot.FOV)
+        end
+    end
+end)
 
 -- =========== ГОРЯЧИЕ КЛАВИШИ ===========
 UserInputService.InputBegan:Connect(function(input)
@@ -573,8 +399,8 @@ UserInputService.InputBegan:Connect(function(input)
             ClearESP()
         end
     elseif input.KeyCode == Enum.KeyCode.F2 then
-        Settings.FOV.Enabled = not Settings.FOV.Enabled
-        if Settings.FOV.Enabled then
+        Settings.FOVCircle.Enabled = not Settings.FOVCircle.Enabled
+        if Settings.FOVCircle.Enabled then
             CreateFOVCircle()
         else
             RemoveFOVCircle()
@@ -582,13 +408,26 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- =========== УВЕДОМЛЕНИЕ ===========
+-- =========== ИНИЦИАЛИЗАЦИЯ ===========
 Rayfield:Notify({
     Title = "🎯 Flick FPS Script",
-    Content = "Загружен! RightShift - меню",
-    Duration = 5,
+    Content = "Загружен!\nF1 - ESP, F2 - FOV Circle\nQ - Aimbot, RightShift - Меню",
+    Duration = 6,
     Image = 4483362458
 })
 
 print("✅ Flick FPS Script загружен!")
-print("🎯 ESP, Aimbot, FOV Circle готовы к использованию")
+print("🎯 Функции:")
+print("  • ESP (F1)")
+print("  • Aimbot (удерживай Q)")
+print("  • FOV Circle (F2)")
+print("  • Третье лицо")
+print("  • Настройка скорости")
+
+-- Авто-настройка скорости при запуске
+spawn(function()
+    wait(2)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = Settings.WalkSpeed
+    end
+end)
