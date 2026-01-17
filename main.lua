@@ -1,12 +1,12 @@
--- Flick FPS WORKING Script
--- ESP + Aimbot + FOV Circle
+-- Flick FPS WORKING SCRIPT
+-- ESP + Aimbot + FOV + Menu
 -- Автор: dachnic7384-bit
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-print("🎯 Flick FPS Script загружается...")
+print("🔥 Flick FPS Script загружен")
 
 -- Сервисы
 local Players = game:GetService("Players")
@@ -17,331 +17,155 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = Workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
--- Настройки
+-- НАСТРОЙКИ
 local Settings = {
-    ESP = false,
-    Aimbot = false,
-    Triggerbot = false,
-    FOVCircle = false,
-    FOVSize = 100,
+    ESP = true,
+    Aimbot = true,
+    FOV = true,
+    FOV_Size = 150,
     AimKey = "Q",
-    AimSmoothness = 0.1,
     AimPart = "Head"
 }
 
--- Простое меню (без Rayfield)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FlickFPS_Menu"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
-
--- Текст информации
-local InfoText = Instance.new("TextLabel")
-InfoText.Name = "InfoText"
-InfoText.Parent = ScreenGui
-InfoText.BackgroundTransparency = 1
-InfoText.Position = UDim2.new(0.02, 0, 0.02, 0)
-InfoText.Size = UDim2.new(0, 250, 0, 100)
-InfoText.Text = "🎯 Flick FPS Script\nF1 - ESP\nF2 - Aimbot\nF3 - Triggerbot\nF4 - FOV Circle\nRightCtrl - Меню"
-InfoText.TextColor3 = Color3.fromRGB(255, 255, 255)
-InfoText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-InfoText.TextStrokeTransparency = 0
-InfoText.TextSize = 16
-InfoText.Font = Enum.Font.GothamBold
-InfoText.Visible = false
-
--- =========== ESP СИСТЕМА ===========
-local ESPObjects = {}
-
-function CreateESP(player)
+-- =========== ESP ===========
+local function CreateESP(player)
     if player == LocalPlayer then return end
     
-    ESPObjects[player] = {}
-    
-    -- Highlight для всего персонажа
     local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
+    highlight.Name = "ESP"
     highlight.FillColor = Color3.fromRGB(255, 0, 0)
-    highlight.FillTransparency = 0.7
+    highlight.FillTransparency = 0.5
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.OutlineTransparency = 0
     
-    player.CharacterAdded:Connect(function(char)
-        wait(1)
-        if Settings.ESP then
-            highlight.Adornee = char
-            highlight.Parent = char
-        end
-    end)
-    
-    if player.Character then
-        highlight.Adornee = player.Character
-        highlight.Parent = player.Character
-    end
-    
-    ESPObjects[player].Highlight = highlight
-    
-    -- Имя над головой
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ESP_Name"
     billboard.Size = UDim2.new(0, 200, 0, 50)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.AlwaysOnTop = true
     
-    local nameText = Instance.new("TextLabel")
-    nameText.Parent = billboard
-    nameText.BackgroundTransparency = 1
-    nameText.Size = UDim2.new(1, 0, 1, 0)
-    nameText.Text = player.Name
-    nameText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    nameText.TextStrokeTransparency = 0
-    nameText.TextSize = 18
-    nameText.Font = Enum.Font.GothamBold
+    local text = Instance.new("TextLabel")
+    text.Parent = billboard
+    text.BackgroundTransparency = 1
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.Text = player.Name
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    text.TextStrokeTransparency = 0
+    text.TextSize = 16
     
     player.CharacterAdded:Connect(function(char)
-        wait(1)
-        if Settings.ESP then
-            billboard.Adornee = char:WaitForChild("Head")
-            billboard.Parent = char.Head
-        end
+        task.wait(0.5)
+        highlight.Adornee = char
+        highlight.Parent = char
+        billboard.Adornee = char:WaitForChild("Head")
+        billboard.Parent = char.Head
     end)
     
-    if player.Character and player.Character:FindFirstChild("Head") then
-        billboard.Adornee = player.Character.Head
-        billboard.Parent = player.Character.Head
-    end
-    
-    ESPObjects[player].Billboard = billboard
-end
-
-function StartESP()
-    ClearESP()
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        CreateESP(player)
-    end
-    
-    Players.PlayerAdded:Connect(function(player)
-        CreateESP(player)
-    end)
-    
-    print("✅ ESP включен")
-end
-
-function ClearESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if player.Character then
-                local highlight = player.Character:FindFirstChild("ESP_Highlight")
-                if highlight then highlight:Destroy() end
-                
-                local billboard = player.Character:FindFirstChildWhichIsA("BillboardGui")
-                if billboard then billboard:Destroy() end
-            end
+    if player.Character then
+        highlight.Adornee = player.Character
+        highlight.Parent = player.Character
+        if player.Character:FindFirstChild("Head") then
+            billboard.Adornee = player.Character.Head
+            billboard.Parent = player.Character.Head
         end
     end
-    ESPObjects = {}
-    print("❌ ESP выключен")
 end
 
--- =========== AIMBOT СИСТЕМА ===========
-function GetClosestPlayerToMouse()
-    local closestPlayer = nil
-    local closestDistance = Settings.FOVSize
-    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+-- Включаем ESP для всех игроков
+for _, player in pairs(Players:GetPlayers()) do
+    CreateESP(player)
+end
+
+Players.PlayerAdded:Connect(CreateESP)
+
+-- =========== AIMBOT ===========
+local function GetClosestPlayer()
+    local closest = nil
+    local closestDist = Settings.FOV_Size
     
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local targetPart = player.Character:FindFirstChild(Settings.AimPart)
-            if not targetPart then
-                targetPart = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+            local target = player.Character:FindFirstChild(Settings.AimPart)
+            if not target then
+                target = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
             end
             
-            if targetPart then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                
+            if target then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(target.Position)
                 if onScreen then
-                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                     
-                    if distance < closestDistance then
-                        -- Проверка на видимость
-                        local origin = Camera.CFrame.Position
-                        local direction = (targetPart.Position - origin).Unit * 1000
-                        local raycastParams = RaycastParams.new()
-                        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
-                        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                        
-                        local raycastResult = Workspace:Raycast(origin, direction, raycastParams)
-                        
-                        if not raycastResult or raycastResult.Instance:IsDescendantOf(player.Character) then
-                            closestPlayer = player
-                            closestDistance = distance
-                        end
+                    if dist < closestDist then
+                        closest = player
+                        closestDist = dist
                     end
                 end
             end
         end
     end
     
-    return closestPlayer
-end
-
-function AimAtPlayer()
-    if not Settings.Aimbot then return end
-    
-    local targetPlayer = GetClosestPlayerToMouse()
-    if not targetPlayer or not targetPlayer.Character then return end
-    
-    local targetPart = targetPlayer.Character:FindFirstChild(Settings.AimPart)
-    if not targetPart then
-        targetPart = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    end
-    
-    if targetPart then
-        local currentCFrame = Camera.CFrame
-        local targetPosition = targetPart.Position
-        local targetCFrame = CFrame.new(currentCFrame.Position, targetPosition)
-        
-        -- Плавное прицеливание
-        Camera.CFrame = currentCFrame:Lerp(targetCFrame, Settings.AimSmoothness)
-    end
-end
-
--- =========== TRIGGERBOT ===========
-function StartTriggerbot()
-    while Settings.Triggerbot do
-        wait(0.1)
-        
-        if Settings.Triggerbot then
-            local targetPlayer = GetClosestPlayerToMouse()
-            if targetPlayer and targetPlayer.Character then
-                mouse1press()
-                wait(0.05)
-                mouse1release()
-            end
-        end
-    end
+    return closest
 end
 
 -- =========== FOV CIRCLE ===========
-local FOVCircle
+local FOVCircle = Instance.new("ScreenGui")
+FOVCircle.Name = "FOV_Circle"
+FOVCircle.ResetOnSpawn = false
+FOVCircle.Parent = game.CoreGui
 
-function CreateFOVCircle()
-    RemoveFOVCircle()
-    
-    FOVCircle = Instance.new("ScreenGui")
-    FOVCircle.Name = "FOV_Circle"
-    FOVCircle.ResetOnSpawn = false
-    FOVCircle.Parent = game.CoreGui
-    
-    local frame = Instance.new("Frame")
-    frame.Name = "Circle"
-    frame.BackgroundTransparency = 1
-    frame.Size = UDim2.new(0, Settings.FOVSize, 0, Settings.FOVSize)
-    frame.Position = UDim2.new(0.5, -Settings.FOVSize/2, 0.5, -Settings.FOVSize/2)
-    frame.Parent = FOVCircle
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = frame
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(255, 255, 255)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.5
-    stroke.Parent = frame
-    
-    print("✅ FOV Circle создан")
-end
+local circle = Instance.new("Frame")
+circle.Name = "Circle"
+circle.AnchorPoint = Vector2.new(0.5, 0.5)
+circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+circle.Size = UDim2.new(0, Settings.FOV_Size, 0, Settings.FOV_Size)
+circle.BackgroundTransparency = 1
+circle.Parent = FOVCircle
 
-function RemoveFOVCircle()
-    if FOVCircle then
-        FOVCircle:Destroy()
-        FOVCircle = nil
-    end
-end
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = circle
 
--- =========== ОБНОВЛЕНИЕ ===========
-RunService.RenderStepped:Connect(function()
-    -- Aimbot
-    if Settings.Aimbot and UserInputService:IsKeyDown(Enum.KeyCode[Settings.AimKey]) then
-        AimAtPlayer()
-    end
-    
-    -- Обновление FOV Circle
-    if Settings.FOVCircle and FOVCircle then
-        local circle = FOVCircle:FindFirstChild("Circle")
-        if circle then
-            circle.Size = UDim2.new(0, Settings.FOVSize, 0, Settings.FOVSize)
-            circle.Position = UDim2.new(0.5, -Settings.FOVSize/2, 0.5, -Settings.FOVSize/2)
-        end
-    end
-end)
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Thickness = 2
+stroke.Transparency = 0.3
+stroke.Parent = circle
 
--- =========== ГОРЯЧИЕ КЛАВИШИ ===========
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.F1 then
-        Settings.ESP = not Settings.ESP
-        if Settings.ESP then
-            StartESP()
-        else
-            ClearESP()
-        end
-        
-    elseif input.KeyCode == Enum.KeyCode.F2 then
-        Settings.Aimbot = not Settings.Aimbot
-        print(Settings.Aimbot and "✅ Aimbot включен (удерживай Q)" or "❌ Aimbot выключен")
-        
-    elseif input.KeyCode == Enum.KeyCode.F3 then
-        Settings.Triggerbot = not Settings.Triggerbot
-        if Settings.Triggerbot then
-            spawn(StartTriggerbot)
-            print("✅ Triggerbot включен")
-        else
-            print("❌ Triggerbot выключен")
-        end
-        
-    elseif input.KeyCode == Enum.KeyCode.F4 then
-        Settings.FOVCircle = not Settings.FOVCircle
-        if Settings.FOVCircle then
-            CreateFOVCircle()
-        else
-            RemoveFOVCircle()
-        end
-        
-    elseif input.KeyCode == Enum.KeyCode.RightControl then
-        InfoText.Visible = not InfoText.Visible
-    end
-end)
+-- =========== МЕНЮ ===========
+local Menu = Instance.new("ScreenGui")
+Menu.Name = "FlickFPS_Menu"
+Menu.ResetOnSpawn = false
+Menu.Parent = game.CoreGui
 
--- =========== НАСТРОЙКИ СКРИПТА ===========
-local ConfigFrame = Instance.new("Frame")
-ConfigFrame.Name = "Config"
-ConfigFrame.Parent = ScreenGui
-ConfigFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ConfigFrame.BackgroundTransparency = 0.3
-ConfigFrame.Size = UDim2.new(0, 300, 0, 400)
-ConfigFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-ConfigFrame.Visible = false
-ConfigFrame.Active = true
-ConfigFrame.Draggable = true
+-- Фон меню
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "Main"
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = Menu
+MainFrame.Active = true
+MainFrame.Draggable = true
 
+-- Заголовок
 local Title = Instance.new("TextLabel")
-Title.Parent = ConfigFrame
-Title.Text = "🎯 Flick FPS Settings"
+Title.Text = "🎯 FLICK FPS MENU"
 Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 20
+Title.Parent = MainFrame
 
--- Создаем кнопки настроек
-local function CreateButton(parent, text, yPos, callback)
+-- Функция создания кнопок
+local yPos = 50
+local function CreateButton(text, callback)
     local button = Instance.new("TextButton")
-    button.Parent = parent
     button.Text = text
     button.Size = UDim2.new(0.9, 0, 0, 40)
     button.Position = UDim2.new(0.05, 0, 0, yPos)
@@ -349,104 +173,108 @@ local function CreateButton(parent, text, yPos, callback)
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.Font = Enum.Font.Gotham
     button.TextSize = 16
+    button.Parent = MainFrame
     
     button.MouseButton1Click:Connect(callback)
     
+    yPos = yPos + 50
     return button
 end
 
--- Кнопки настроек
-local buttonY = 50
-CreateButton(ConfigFrame, "Включить ESP", buttonY, function()
+-- Кнопка ESP
+local espButton = CreateButton("ESP: ВКЛ", function()
     Settings.ESP = not Settings.ESP
-    if Settings.ESP then
-        StartESP()
-    else
-        ClearESP()
-    end
-end)
-
-buttonY = buttonY + 50
-CreateButton(ConfigFrame, "Включить Aimbot (Q)", buttonY, function()
-    Settings.Aimbot = not Settings.Aimbot
-end)
-
-buttonY = buttonY + 50
-CreateButton(ConfigFrame, "Включить Triggerbot", buttonY, function()
-    Settings.Triggerbot = not Settings.Triggerbot
-    if Settings.Triggerbot then
-        spawn(StartTriggerbot)
-    end
-end)
-
-buttonY = buttonY + 50
-CreateButton(ConfigFrame, "Включить FOV Circle", buttonY, function()
-    Settings.FOVCircle = not Settings.FOVCircle
-    if Settings.FOVCircle then
-        CreateFOVCircle()
-    else
-        RemoveFOVCircle()
-    end
-end)
-
-buttonY = buttonY + 50
-CreateButton(ConfigFrame, "Увеличить FOV", buttonY, function()
-    Settings.FOVSize = Settings.FOVSize + 20
-    if Settings.FOVSize > 300 then Settings.FOVSize = 100 end
-    if Settings.FOVCircle then
-        CreateFOVCircle()
-    end
-end)
-
-buttonY = buttonY + 50
-CreateButton(ConfigFrame, "Закрыть меню", buttonY, function()
-    ConfigFrame.Visible = false
-end)
-
--- =========== ИНИЦИАЛИЗАЦИЯ ===========
-print("🎯 Flick FPS Script загружен!")
-print("🔥 Горячие клавиши:")
-print("  F1 - Вкл/выкл ESP")
-print("  F2 - Вкл/выкл Aimbot")
-print("  F3 - Вкл/выкл Triggerbot")
-print("  F4 - Вкл/выкл FOV Circle")
-print("  RightCtrl - Показать инфо")
-print("  RightAlt - Открыть меню настроек")
-
--- Авто-создание ESP для уже существующих игроков
-for _, player in pairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        CreateESP(player)
-    end
-end
-
--- Кнопка для открытия меню настроек
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightAlt then
-        ConfigFrame.Visible = not ConfigFrame.Visible
-    end
-end)
-
--- Уведомление
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "🎯 Flick FPS Script",
-    Text = "Загружен!\nF1 - ESP, F2 - Aimbot\nF3 - Triggerbot, F4 - FOV Circle\nRightCtrl - Инфо, RightAlt - Меню",
-    Duration = 8,
-})
-
--- Авто-обновление ESP
-spawn(function()
-    while true do
-        wait(1)
-        if Settings.ESP then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local highlight = player.Character:FindFirstChild("ESP_Highlight")
-                    if not highlight then
-                        CreateESP(player)
-                    end
-                end
+    espButton.Text = "ESP: " .. (Settings.ESP and "ВКЛ" or "ВЫКЛ")
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local esp = player.Character and player.Character:FindFirstChild("ESP")
+            if esp then
+                esp.Enabled = Settings.ESP
             end
         end
     end
 end)
+
+-- Кнопка Aimbot
+local aimButton = CreateButton("Aimbot: ВКЛ", function()
+    Settings.Aimbot = not Settings.Aimbot
+    aimButton.Text = "Aimbot: " .. (Settings.Aimbot and "ВКЛ" or "ВЫКЛ")
+end)
+
+-- Кнопка FOV
+local fovButton = CreateButton("FOV Circle: ВКЛ", function()
+    Settings.FOV = not Settings.FOV
+    fovButton.Text = "FOV Circle: " .. (Settings.FOV and "ВКЛ" or "ВЫКЛ")
+    FOVCircle.Enabled = Settings.FOV
+end)
+
+-- Кнопка размера FOV
+local fovSizeButton = CreateButton("FOV Size: " .. Settings.FOV_Size, function()
+    Settings.FOV_Size = Settings.FOV_Size + 50
+    if Settings.FOV_Size > 300 then Settings.FOV_Size = 100 end
+    fovSizeButton.Text = "FOV Size: " .. Settings.FOV_Size
+    circle.Size = UDim2.new(0, Settings.FOV_Size, 0, Settings.FOV_Size)
+end)
+
+-- Кнопка закрытия
+CreateButton("ЗАКРЫТЬ МЕНЮ", function()
+    Menu.Enabled = false
+end)
+
+-- =========== ОБНОВЛЕНИЕ ===========
+RunService.RenderStepped:Connect(function()
+    -- Aimbot
+    if Settings.Aimbot and UserInputService:IsKeyDown(Enum.KeyCode[Settings.AimKey]) then
+        local targetPlayer = GetClosestPlayer()
+        if targetPlayer and targetPlayer.Character then
+            local target = targetPlayer.Character:FindFirstChild(Settings.AimPart)
+            if not target then
+                target = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            end
+            
+            if target then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            end
+        end
+    end
+    
+    -- Обновление FOV круга
+    if Settings.FOV then
+        circle.Size = UDim2.new(0, Settings.FOV_Size, 0, Settings.FOV_Size)
+    end
+end)
+
+-- =========== ГОРЯЧИЕ КЛАВИШИ ===========
+UserInputService.InputBegan:Connect(function(input)
+    -- Открыть/закрыть меню (Insert)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        Menu.Enabled = not Menu.Enabled
+    end
+    
+    -- ESP (F1)
+    if input.KeyCode == Enum.KeyCode.F1 then
+        Settings.ESP = not Settings.ESP
+        espButton.Text = "ESP: " .. (Settings.ESP and "ВКЛ" or "ВЫКЛ")
+    end
+    
+    -- Aimbot (F2)
+    if input.KeyCode == Enum.KeyCode.F2 then
+        Settings.Aimbot = not Settings.Aimbot
+        aimButton.Text = "Aimbot: " .. (Settings.Aimbot and "ВКЛ" or "ВЫКЛ")
+    end
+end)
+
+-- =========== УВЕДОМЛЕНИЕ ===========
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "🎯 Flick FPS Script",
+    Text = "Загружен!\nInsert - Меню\nF1 - ESP, F2 - Aimbot\nQ - Аимбот (удерживать)",
+    Duration = 8,
+})
+
+print("✅ Скрипт готов к использованию!")
+print("🎮 Управление:")
+print("  Insert - Открыть/закрыть меню")
+print("  F1 - Вкл/выкл ESP")
+print("  F2 - Вкл/выкл Aimbot")
+print("  Q - Активировать аимбот")
